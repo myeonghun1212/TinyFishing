@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity CLI Editor"
+  short_description: "Operate Unity Editor through Unity CLI and Pipeline"
+  default_prompt: "Use $unity-cli-editor to inspect and operate my Unity project through unity-cli and unity-pipeline."
