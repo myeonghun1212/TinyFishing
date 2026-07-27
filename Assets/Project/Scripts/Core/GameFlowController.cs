@@ -35,6 +35,7 @@ namespace NanFishing.Core
             fishing.StateChanged += HandleFishingState;
             fishing.RoundResolved += HandleRoundResolved;
             fishing.ReelingUpdated += hud.SetReeling;
+            hud.CalibrationRestartRequested += input.BeginCalibration;
             hud.RecalibrateRequested += input.Recalibrate;
             hud.RestartRequested += Restart;
 
@@ -50,6 +51,12 @@ namespace NanFishing.Core
                 fishing.StateChanged -= HandleFishingState;
                 fishing.RoundResolved -= HandleRoundResolved;
                 fishing.ReelingUpdated -= hud.SetReeling;
+            }
+            if (hud != null)
+            {
+                hud.CalibrationRestartRequested -= input.BeginCalibration;
+                hud.RecalibrateRequested -= input.Recalibrate;
+                hud.RestartRequested -= Restart;
             }
         }
 

@@ -1,4 +1,5 @@
 using NanFishing.UI;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -11,6 +12,10 @@ namespace NanFishing.Editor
     public static class EditableUIBuilder
     {
         private const string ScenePath = "Assets/Project/Scenes/SampleScene.unity";
+        private const string FontAssetPath =
+            "Assets/Project/Font/Griun_Fromsol-Rg SDF.asset";
+        private const string StartPanelControllerPath =
+            "Assets/Project/Animation/StartPanel/StartPanel.controller";
 
         [MenuItem("Tools/NAN Fishing/Build Scene UI")]
         public static void BuildSceneUI()
@@ -34,6 +39,9 @@ namespace NanFishing.Editor
 
             var startPanel = Panel("StartPanel", canvasObject.transform,
                 new Color(0.02f, 0.12f, 0.18f, 0.42f));
+            var startAnimator = startPanel.AddComponent<Animator>();
+            startAnimator.runtimeAnimatorController =
+                AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(StartPanelControllerPath);
             Label("Title", startPanel.transform, "TINY FISHING", 92, TextAnchor.MiddleCenter,
                 new Vector2(0.08f, 0.72f), new Vector2(0.92f, 0.9f));
             var startInstruction = Label("StartInstruction", startPanel.transform,
@@ -41,6 +49,8 @@ namespace NanFishing.Editor
                 new Vector2(0.08f, 0.52f), new Vector2(0.92f, 0.7f));
             Label("StartHint", startPanel.transform, "SWING BACK  >  CAST FORWARD", 30,
                 TextAnchor.MiddleCenter, new Vector2(0.12f, 0.42f), new Vector2(0.88f, 0.5f));
+            var startRecalibrate = Button("StartRecalibrateButton", startPanel.transform,
+                "RESTART CALIBRATION", new Vector2(0.25f, 0.34f), new Vector2(0.75f, 0.4f));
 
             var gameplayPanel = Panel("GameplayPanel", canvasObject.transform, Color.clear);
             var instruction = Label("Instruction", gameplayPanel.transform, "CAST!", 42,
@@ -97,9 +107,9 @@ namespace NanFishing.Editor
                 new Vector2(0.2f, 0.08f), new Vector2(0.8f, 0.17f));
 
             canvasObject.GetComponent<FishingHUD>().ConfigureScene(startPanel, gameplayPanel,
-                resultPanel, startInstruction, instruction, timer, score, combo, feedback,
-                tensionFill, tensionStatus, progressFill, fishMarker, playerMarker, phone,
-                recalibrate, resultText, restart);
+                resultPanel, startInstruction, startAnimator, startRecalibrate, instruction, timer,
+                score, combo, feedback, tensionFill, tensionStatus, progressFill, fishMarker,
+                playerMarker, phone, recalibrate, resultText, restart);
 
             startPanel.SetActive(true);
             gameplayPanel.SetActive(false);
@@ -130,22 +140,39 @@ namespace NanFishing.Editor
             return panel;
         }
 
-        private static Text Label(string name, Transform parent, string value, int size,
+        private static TextMeshProUGUI Label(string name, Transform parent, string value, int size,
             TextAnchor alignment, Vector2 min, Vector2 max)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             Stretch(go.GetComponent<RectTransform>(), min, max);
-            var text = go.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.GetComponent<TextMeshProUGUI>();
+            text.font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetPath);
             text.text = value;
             text.fontSize = size;
-            text.alignment = alignment;
+            text.alignment = ToTmpAlignment(alignment);
             text.color = Color.white;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 16;
-            text.resizeTextMaxSize = size;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 16;
+            text.fontSizeMax = size;
             return text;
+        }
+
+        private static TextAlignmentOptions ToTmpAlignment(TextAnchor alignment)
+        {
+            return alignment switch
+            {
+                TextAnchor.UpperLeft => TextAlignmentOptions.TopLeft,
+                TextAnchor.UpperCenter => TextAlignmentOptions.Top,
+                TextAnchor.UpperRight => TextAlignmentOptions.TopRight,
+                TextAnchor.MiddleLeft => TextAlignmentOptions.Left,
+                TextAnchor.MiddleCenter => TextAlignmentOptions.Center,
+                TextAnchor.MiddleRight => TextAlignmentOptions.Right,
+                TextAnchor.LowerLeft => TextAlignmentOptions.BottomLeft,
+                TextAnchor.LowerCenter => TextAlignmentOptions.Bottom,
+                TextAnchor.LowerRight => TextAlignmentOptions.BottomRight,
+                _ => TextAlignmentOptions.Center
+            };
         }
 
         private static Image Bar(string name, Transform parent, Vector2 min, Vector2 max, Color color)

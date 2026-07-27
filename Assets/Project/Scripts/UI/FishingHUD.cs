@@ -1,5 +1,6 @@
 using System;
 using NanFishing.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,6 +8,7 @@ namespace NanFishing.UI
 {
     public sealed class FishingHUD : MonoBehaviour
     {
+        public event Action CalibrationRestartRequested;
         public event Action RecalibrateRequested;
         public event Action RestartRequested;
 
@@ -16,16 +18,18 @@ namespace NanFishing.UI
         [SerializeField] private GameObject resultPanel;
 
         [Header("Start")]
-        [SerializeField] private Text startInstruction;
+        [SerializeField] private TextMeshProUGUI startInstruction;
+        [SerializeField] private Animator startAnimator;
+        [SerializeField] private Button startRecalibrateButton;
 
         [Header("Gameplay")]
-        [SerializeField] private Text instruction;
-        [SerializeField] private Text timer;
-        [SerializeField] private Text score;
-        [SerializeField] private Text combo;
-        [SerializeField] private Text feedback;
+        [SerializeField] private TextMeshProUGUI instruction;
+        [SerializeField] private TextMeshProUGUI timer;
+        [SerializeField] private TextMeshProUGUI score;
+        [SerializeField] private TextMeshProUGUI combo;
+        [SerializeField] private TextMeshProUGUI feedback;
         [SerializeField] private Image tensionFill;
-        [SerializeField] private Text tensionStatus;
+        [SerializeField] private TextMeshProUGUI tensionStatus;
         [SerializeField] private Image progressFill;
         [SerializeField] private RectTransform fishMarker;
         [SerializeField] private RectTransform playerTiltMarker;
@@ -33,21 +37,26 @@ namespace NanFishing.UI
         [SerializeField] private Button recalibrateButton;
 
         [Header("Result")]
-        [SerializeField] private Text result;
+        [SerializeField] private TextMeshProUGUI result;
         [SerializeField] private Button restartButton;
 
         private bool listenersBound;
 
         public void ConfigureScene(GameObject start, GameObject gameplay, GameObject resultState,
-            Text calibrationText, Text gameplayInstruction, Text timerText, Text scoreText,
-            Text comboText, Text feedbackText, Image tension, Text tensionText, Image progress,
-            RectTransform fishDirection, RectTransform playerDirection, RectTransform phoneVisual,
-            Button recalibrate, Text resultText, Button restart)
+            TextMeshProUGUI calibrationText, Animator calibrationAnimator,
+            Button startRecalibrate, TextMeshProUGUI gameplayInstruction,
+            TextMeshProUGUI timerText, TextMeshProUGUI scoreText, TextMeshProUGUI comboText,
+            TextMeshProUGUI feedbackText, Image tension, TextMeshProUGUI tensionText,
+            Image progress, RectTransform fishDirection,
+            RectTransform playerDirection, RectTransform phoneVisual, Button recalibrate,
+            TextMeshProUGUI resultText, Button restart)
         {
             startPanel = start;
             gameplayPanel = gameplay;
             resultPanel = resultState;
             startInstruction = calibrationText;
+            startAnimator = calibrationAnimator;
+            startRecalibrateButton = startRecalibrate;
             instruction = gameplayInstruction;
             timer = timerText;
             score = scoreText;
@@ -68,6 +77,19 @@ namespace NanFishing.UI
         private void Awake()
         {
             BindButtons();
+            CalibrationRestartRequested += () => startAnimator.SetBool("Calibrated", false);
+        }
+
+        private void OnDestroy()
+        {
+            if (!listenersBound)
+            {
+                return;
+            }
+
+            startRecalibrateButton.onClick.RemoveListener(HandleCalibrationRestart);
+            recalibrateButton.onClick.RemoveListener(HandleRecalibrate);
+            restartButton.onClick.RemoveListener(HandleRestart);
         }
 
         public void ShowStart(bool hasMotion)
@@ -83,9 +105,10 @@ namespace NanFishing.UI
 
         public void SetCalibration(float progress, bool calibrated)
         {
-            startInstruction.text = calibrated
-                ? "Swing back, then cast forward!\n(Editor: press ENTER)"
-                : $"Hold still... {Mathf.RoundToInt(progress * 100f)}%";
+            startInstruction.text = $"초기화를 위해 가만히 있어주세요... {Mathf.RoundToInt(progress * 100f)}%";
+         
+            startAnimator.SetBool("Calibrated", calibrated);
+         
         }
 
         public void ShowGameplay()
@@ -106,7 +129,7 @@ namespace NanFishing.UI
                     instruction.text = "Wait for it...";
                     break;
                 case GameState.Reeling:
-                    instruction.text = "HOLD to reel  •  TILT to match the fish";
+                    instruction.text = "화면을 터치하여 릴링하고, 기울여서 낚시대의 방향을 조절하세요";
                     feedback.text = "BITE!";
                     break;
                 case GameState.SessionResult:
@@ -176,14 +199,21 @@ namespace NanFishing.UI
 
         private void BindButtons()
         {
-            if (listenersBound || recalibrateButton == null || restartButton == null)
+            if (listenersBound || startRecalibrateButton == null ||
+                recalibrateButton == null || restartButton == null)
             {
                 return;
             }
-            recalibrateButton.onClick.AddListener(() => RecalibrateRequested?.Invoke());
-            restartButton.onClick.AddListener(() => RestartRequested?.Invoke());
+
+            startRecalibrateButton.onClick.AddListener(HandleCalibrationRestart);
+            recalibrateButton.onClick.AddListener(HandleRecalibrate);
+            restartButton.onClick.AddListener(HandleRestart);
             listenersBound = true;
         }
+
+        private void HandleCalibrationRestart() => CalibrationRestartRequested?.Invoke();
+        private void HandleRecalibrate() => RecalibrateRequested?.Invoke();
+        private void HandleRestart() => RestartRequested?.Invoke();
 
         private static void SetBar(Image image, float value)
         {

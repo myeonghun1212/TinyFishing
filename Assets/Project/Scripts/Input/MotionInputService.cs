@@ -130,7 +130,7 @@ namespace NanFishing.Input
             var relative = Quaternion.Inverse(baselineAttitude) * attitude;
             var relativeEuler = relative.eulerAngles;
             var pitch = NormalizeAngle(relativeEuler.x);
-            var roll = NormalizeAngle(relativeEuler.z);
+            var roll = NormalizeAngle(relativeEuler.y);
             Direction = Mathf.Clamp(roll / config.maximumTiltAngle, -1f, 1f);
 
             if (pitch <= -config.backswingAngle)

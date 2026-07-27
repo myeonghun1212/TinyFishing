@@ -8,38 +8,52 @@ using UnityEngine.InputSystem.UI;
 
 namespace NanFishing.Core
 {
-    public static class DemoBootstrap
+    public sealed class DemoBootstrap : MonoBehaviour
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Bootstrap()
+        [Header("Game Data")]
+        [SerializeField] private GameBalanceConfig gameSetting;
+        [SerializeField] private FishDefinition[] fishCatalog;
+
+        private void Awake()
         {
             if (Object.FindAnyObjectByType<GameFlowController>() != null)
             {
                 return;
             }
 
+            if (gameSetting == null)
+            {
+                Debug.LogError("GameSetting is not assigned to DemoBootstrap.", this);
+                enabled = false;
+                return;
+            }
+
+            if (fishCatalog == null || fishCatalog.Length == 0)
+            {
+                Debug.LogError("Fish Catalog is empty on DemoBootstrap.", this);
+                enabled = false;
+                return;
+            }
+
             Application.targetFrameRate = 60;
             Screen.orientation = ScreenOrientation.Portrait;
 
-            var root = new GameObject("NAN_Fishing_Demo");
-            var balance = GameBalanceConfig.CreateRuntime();
-            var fishCatalog = CreateFishCatalog();
             PrepareCamera();
             FindSceneReferences(out var bobber, out var fishRoot);
-            EnsureEventSystem(root.transform);
+            EnsureEventSystem(transform);
 
-            var input = root.AddComponent<MotionInputService>();
-            input.Initialize(balance);
-            var fishing = root.AddComponent<FishingController>();
-            fishing.Initialize(input, balance, fishCatalog, bobber, fishRoot);
+            var input = gameObject.AddComponent<MotionInputService>();
+            input.Initialize(gameSetting);
+            var fishing = gameObject.AddComponent<FishingController>();
+            fishing.Initialize(input, gameSetting, fishCatalog, bobber, fishRoot);
             var hud = Object.FindAnyObjectByType<FishingHUD>(FindObjectsInactive.Include);
             if (hud == null)
             {
                 Debug.LogError("FishingHUD is missing from the scene. Run Tools/NAN Fishing/Build Scene UI.");
                 return;
             }
-            var flow = root.AddComponent<GameFlowController>();
-            flow.Initialize(input, fishing, hud, balance, fishCatalog);
+            var flow = gameObject.AddComponent<GameFlowController>();
+            flow.Initialize(input, fishing, hud, gameSetting, fishCatalog);
         }
 
         private static Camera PrepareCamera()
@@ -93,29 +107,5 @@ namespace NanFishing.Core
             eventSystem.transform.SetParent(root);
         }
 
-        private static FishDefinition[] CreateFishCatalog()
-        {
-            return new[]
-            {
-                Fish("bluegill", "Bluegill", FishRarity.Common, 100, 0.75f, 0.65f, 1.35f,
-                    new Color(0.25f, 0.72f, 0.85f)),
-                Fish("carp", "Carp", FishRarity.Common, 120, 0.9f, 0.55f, 1.5f,
-                    new Color(0.8f, 0.62f, 0.23f)),
-                Fish("salmon", "Salmon", FishRarity.Uncommon, 190, 1.15f, 0.8f, 1.05f,
-                    new Color(0.95f, 0.42f, 0.35f)),
-                Fish("tuna", "Tuna", FishRarity.Uncommon, 230, 1.3f, 0.95f, 0.85f,
-                    new Color(0.18f, 0.38f, 0.62f)),
-                Fish("golden", "Golden Fish", FishRarity.Rare, 450, 1.55f, 1.15f, 0.65f,
-                    new Color(1f, 0.78f, 0.08f))
-            };
-        }
-
-        private static FishDefinition Fish(string id, string label, FishRarity rarity, int score,
-            float resistance, float speed, float turnInterval, Color color)
-        {
-            var fish = ScriptableObject.CreateInstance<FishDefinition>();
-            fish.ConfigureRuntime(id, label, rarity, score, resistance, speed, turnInterval, color);
-            return fish;
-        }
     }
 }
