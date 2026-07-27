@@ -54,30 +54,26 @@ namespace NanFishing.Editor
             var feedback = Label("Feedback", gameplayPanel.transform, string.Empty, 64,
                 TextAnchor.MiddleCenter, new Vector2(0.12f, 0.54f), new Vector2(0.88f, 0.68f));
 
-            Label("TiltTitle", gameplayPanel.transform, "MATCH YOUR TILT TO THE FISH", 26,
+            Label("TiltTitle", gameplayPanel.transform, "TAP OR RAISE PHONE WHEN FISH IS GREEN", 26,
                 TextAnchor.MiddleCenter, new Vector2(0.12f, 0.38f), new Vector2(0.88f, 0.43f));
             var phone = Bar("PhoneTiltVisual", gameplayPanel.transform,
                 new Vector2(0.43f, 0.29f), new Vector2(0.57f, 0.38f),
                 new Color(0.08f, 0.12f, 0.17f, 0.92f)).rectTransform;
-            Label("PhoneLabel", phone, "YOU", 24, TextAnchor.MiddleCenter,
+            Label("PhoneLabel", phone, "RAISE", 24, TextAnchor.MiddleCenter,
                 Vector2.zero, Vector2.one).color = new Color(0.25f, 0.9f, 1f);
 
             var directionTrack = Bar("TiltTrack", gameplayPanel.transform,
                 new Vector2(0.18f, 0.21f), new Vector2(0.82f, 0.265f),
                 new Color(0f, 0f, 0f, 0.42f));
+            var allowedZone = Bar("AllowedCatchZone", directionTrack.transform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Color(0.15f, 0.85f, 0.28f, 0.72f)).rectTransform;
+            allowedZone.sizeDelta = new Vector2(120f, 64f);
             var fishMarker = Marker("FishTiltMarker", directionTrack.transform,
-                new Color(1f, 0.78f, 0.08f), "FISH", 36f);
-            var playerMarker = Marker("PlayerTiltMarker", directionTrack.transform,
-                new Color(0.2f, 0.85f, 1f), "YOU", -36f);
-
-            var tensionBackground = Bar("LineTension", gameplayPanel.transform,
-                new Vector2(0.1f, 0.12f), new Vector2(0.9f, 0.155f),
-                new Color(0f, 0f, 0f, 0.5f));
-            var tensionFill = Fill("TensionFill", tensionBackground.transform,
-                new Color(0.25f, 0.9f, 0.45f));
-            var tensionStatus = Label("TensionStatus", gameplayPanel.transform,
-                "SAFE  0%", 27, TextAnchor.MiddleCenter,
-                new Vector2(0.1f, 0.155f), new Vector2(0.9f, 0.195f));
+                new Color(1f, 0.78f, 0.08f), "FISH", 0f);
+            var actionStatus = Label("CatchActionStatus", gameplayPanel.transform,
+                "WAIT FOR GREEN  •  0%", 27, TextAnchor.MiddleCenter,
+                new Vector2(0.1f, 0.13f), new Vector2(0.9f, 0.19f));
 
             var progressBackground = Bar("CatchProgress", gameplayPanel.transform,
                 new Vector2(0.1f, 0.065f), new Vector2(0.9f, 0.1f),
@@ -98,7 +94,7 @@ namespace NanFishing.Editor
 
             canvasObject.GetComponent<FishingHUD>().ConfigureScene(startPanel, gameplayPanel,
                 resultPanel, startInstruction, instruction, timer, score, combo, feedback,
-                tensionFill, tensionStatus, progressFill, fishMarker, playerMarker, phone,
+                actionStatus, progressFill, allowedZone, fishMarker, phone,
                 recalibrate, resultText, restart);
 
             startPanel.SetActive(true);

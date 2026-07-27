@@ -11,7 +11,7 @@ namespace NanFishing.Fishing
     {
         public event Action<GameState> StateChanged;
         public event Action<FishDefinition, bool, float> RoundResolved;
-        public event Action<float, float, float, float, bool> ReelingUpdated;
+        public event Action<float, float, float, float, bool, bool, bool> ReelingUpdated;
 
         private IPlayerInput playerInput;
         private GameBalanceConfig config;
@@ -19,9 +19,10 @@ namespace NanFishing.Fishing
         private Transform bobber;
         private Transform fishRoot;
         private FishController activeFish;
-        private LineTensionModel tensionModel;
+        private CatchZoneModel catchZoneModel;
         private Transform rodVisual;
         private Quaternion rodRestRotation;
+        private Vector3 rodRestPosition;
         private float reelDuration;
         private Coroutine activeRoutine;
 
@@ -36,12 +37,13 @@ namespace NanFishing.Fishing
             catalog = fishCatalog;
             bobber = bobberTransform;
             fishRoot = fishParent;
-            tensionModel = new LineTensionModel(config);
+            catchZoneModel = new CatchZoneModel(config);
             var rodObject = GameObject.Find("FishingRod");
             if (rodObject != null)
             {
                 rodVisual = rodObject.transform;
                 rodRestRotation = rodVisual.rotation;
+                rodRestPosition = rodVisual.position;
             }
             playerInput.CastPerformed += HandleCast;
             SetState(GameState.Casting);
@@ -75,24 +77,24 @@ namespace NanFishing.Fishing
 
             reelDuration += Time.deltaTime;
             activeFish.Simulate(Time.deltaTime);
-            tensionModel.Tick(Time.deltaTime, playerInput.IsReeling, playerInput.Direction,
-                activeFish.Direction, activeFish.Definition.Resistance);
-            ReelingUpdated?.Invoke(tensionModel.Tension, tensionModel.Progress, activeFish.Direction,
-                playerInput.Direction, playerInput.IsReeling);
+            var actionActive = playerInput.IsReeling || playerInput.IsRodRaised;
+            var isInsideZone = catchZoneModel.Tick(Time.deltaTime, actionActive, activeFish.Direction);
+            ReelingUpdated?.Invoke(catchZoneModel.Progress, activeFish.Direction,
+                catchZoneModel.ZoneCenter, catchZoneModel.ZoneHalfWidth, actionActive, isInsideZone,
+                playerInput.IsRodRaised);
             if (rodVisual != null)
             {
-                var tiltRotation = Quaternion.AngleAxis(-playerInput.Direction * 18f, Vector3.forward);
+                var tiltRotation = Quaternion.AngleAxis(actionActive ? -14f : 0f, Vector3.right);
                 rodVisual.rotation = Quaternion.Slerp(rodVisual.rotation,
                     tiltRotation * rodRestRotation, Time.deltaTime * 8f);
+                rodVisual.position = Vector3.Lerp(rodVisual.position,
+                    rodRestPosition + Vector3.up * (playerInput.IsRodRaised ? 0.3f : 0f),
+                    Time.deltaTime * 8f);
             }
 
-            if (tensionModel.IsCaught)
+            if (catchZoneModel.IsCaught)
             {
                 ResolveRound(true);
-            }
-            else if (tensionModel.IsBroken)
-            {
-                ResolveRound(false);
             }
         }
 
@@ -128,7 +130,7 @@ namespace NanFishing.Fishing
             yield return new WaitForSeconds(UnityEngine.Random.Range(
                 config.biteDelayRange.x, config.biteDelayRange.y));
             SpawnFish(end);
-            tensionModel.Reset();
+            catchZoneModel.Reset();
             reelDuration = 0f;
             SetState(GameState.Reeling);
             activeRoutine = null;

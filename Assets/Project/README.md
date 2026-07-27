@@ -15,15 +15,17 @@ toggle `StartPanel`, `GameplayPanel`, and `ResultPanel` with `SetActive`.
 ## Editor controls
 
 - Enter: cast
-- Space or left mouse: reel
-- Left/Right arrows or A/D: follow the fish
+- Space or left mouse: catch input
+- W: emulate raising the phone close to 90 degrees
 - Mouse swipe upward: touch fallback cast
 
 ## Android controls
 
 - Hold the phone still for 0.5 seconds to calibrate.
 - Move the phone back and swing forward to cast.
-- Hold the screen to reel and tilt left/right to follow the fish.
+- When the moving fish enters the green zone, touch the screen or raise the calibrated
+  phone close to 90 degrees to fill the catch gauge.
+- The green zone moves and changes width at every 20% milestone.
 - Use `RECALIBRATE` to reset the neutral tilt.
 
 ## Art handoff

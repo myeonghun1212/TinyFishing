@@ -24,11 +24,10 @@ namespace NanFishing.UI
         [SerializeField] private Text score;
         [SerializeField] private Text combo;
         [SerializeField] private Text feedback;
-        [SerializeField] private Image tensionFill;
-        [SerializeField] private Text tensionStatus;
+        [SerializeField] private Text actionStatus;
         [SerializeField] private Image progressFill;
+        [SerializeField] private RectTransform allowedZone;
         [SerializeField] private RectTransform fishMarker;
-        [SerializeField] private RectTransform playerTiltMarker;
         [SerializeField] private RectTransform phoneTiltVisual;
         [SerializeField] private Button recalibrateButton;
 
@@ -40,8 +39,8 @@ namespace NanFishing.UI
 
         public void ConfigureScene(GameObject start, GameObject gameplay, GameObject resultState,
             Text calibrationText, Text gameplayInstruction, Text timerText, Text scoreText,
-            Text comboText, Text feedbackText, Image tension, Text tensionText, Image progress,
-            RectTransform fishDirection, RectTransform playerDirection, RectTransform phoneVisual,
+            Text comboText, Text feedbackText, Text statusText, Image progress,
+            RectTransform greenZone, RectTransform fishDirection, RectTransform phoneVisual,
             Button recalibrate, Text resultText, Button restart)
         {
             startPanel = start;
@@ -53,11 +52,10 @@ namespace NanFishing.UI
             score = scoreText;
             combo = comboText;
             feedback = feedbackText;
-            tensionFill = tension;
-            tensionStatus = tensionText;
+            actionStatus = statusText;
             progressFill = progress;
+            allowedZone = greenZone;
             fishMarker = fishDirection;
-            playerTiltMarker = playerDirection;
             phoneTiltVisual = phoneVisual;
             recalibrateButton = recalibrate;
             result = resultText;
@@ -77,7 +75,6 @@ namespace NanFishing.UI
             timer.text = "60";
             score.text = "SCORE 0";
             combo.text = string.Empty;
-            SetBar(tensionFill, 0f);
             SetBar(progressFill, 0f);
         }
 
@@ -106,7 +103,7 @@ namespace NanFishing.UI
                     instruction.text = "Wait for it...";
                     break;
                 case GameState.Reeling:
-                    instruction.text = "HOLD to reel  •  TILT to match the fish";
+                    instruction.text = "TAP or RAISE PHONE when fish is in GREEN";
                     feedback.text = "BITE!";
                     break;
                 case GameState.SessionResult:
@@ -122,26 +119,26 @@ namespace NanFishing.UI
             combo.text = currentCombo > 1 ? $"x{currentCombo} COMBO" : string.Empty;
         }
 
-        public void SetReeling(float tension, float progress, float fishDirection,
-            float playerDirection, bool isReeling)
+        public void SetReeling(float progress, float fishDirection, float zoneCenter,
+            float zoneHalfWidth, bool actionActive, bool isInsideZone, bool rodRaised)
         {
-            SetBar(tensionFill, tension);
-            tensionFill.color = Color.Lerp(new Color(0.25f, 0.9f, 0.45f),
-                new Color(1f, 0.12f, 0.08f), tension);
             SetBar(progressFill, progress);
 
             fishMarker.anchoredPosition = new Vector2(fishDirection * 260f, 0f);
-            playerTiltMarker.anchoredPosition = new Vector2(playerDirection * 260f, 0f);
-            phoneTiltVisual.localRotation = Quaternion.Euler(0f, 0f, -playerDirection * 25f);
-            phoneTiltVisual.localScale = isReeling ? Vector3.one * 1.08f : Vector3.one;
+            fishMarker.GetComponent<Image>().color = isInsideZone
+                ? new Color(0.25f, 1f, 0.35f)
+                : new Color(1f, 0.78f, 0.08f);
+            allowedZone.anchoredPosition = new Vector2(zoneCenter * 260f, 0f);
+            allowedZone.sizeDelta = new Vector2(zoneHalfWidth * 520f, 64f);
+            phoneTiltVisual.localRotation = Quaternion.Euler(0f, 0f, rodRaised ? -75f : 0f);
+            phoneTiltVisual.localScale = actionActive ? Vector3.one * 1.08f : Vector3.one;
 
-            var percent = Mathf.RoundToInt(tension * 100f);
-            tensionStatus.text = tension switch
+            var percent = Mathf.RoundToInt(progress * 100f);
+            actionStatus.text = (isInsideZone, actionActive) switch
             {
-                >= 0.82f => $"DANGER!  {percent}%",
-                >= 0.62f => $"HIGH  {percent}%  •  RELEASE",
-                >= 0.35f => $"PULLING  {percent}%",
-                _ => $"SAFE  {percent}%"
+                (true, true) => $"HIT!  {percent}%",
+                (true, false) => $"NOW!  TAP OR RAISE  •  {percent}%",
+                _ => $"WAIT FOR GREEN  •  {percent}%"
             };
         }
 

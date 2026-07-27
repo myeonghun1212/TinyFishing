@@ -22,6 +22,7 @@ namespace NanFishing.Input
 
         public float Direction { get; private set; }
         public bool IsReeling { get; private set; }
+        public bool IsRodRaised { get; private set; }
         public bool IsCalibrated { get; private set; }
         public bool HasMotionSensors { get; private set; }
         public float CalibrationProgress =>
@@ -68,6 +69,7 @@ namespace NanFishing.Input
             }
 
             cooldown = Mathf.Max(0f, cooldown - Time.unscaledDeltaTime);
+            IsRodRaised = false;
             UpdatePointer();
             UpdateMotion();
             UpdateEditorInput();
@@ -132,6 +134,7 @@ namespace NanFishing.Input
             var pitch = NormalizeAngle(relativeEuler.x);
             var roll = NormalizeAngle(relativeEuler.z);
             Direction = Mathf.Clamp(roll / config.maximumTiltAngle, -1f, 1f);
+            IsRodRaised = Mathf.Abs(pitch) >= config.rodRaiseAngle;
 
             if (pitch <= -config.backswingAngle)
             {
@@ -206,6 +209,7 @@ namespace NanFishing.Input
                 Direction = Mathf.Clamp(Direction, -1f, 1f);
             }
             IsReeling |= Keyboard.current.spaceKey.isPressed;
+            IsRodRaised |= Keyboard.current.wKey.isPressed;
             if (Keyboard.current.enterKey.wasPressedThisFrame && cooldown <= 0f)
             {
                 TriggerCast(CastStrength.Medium);

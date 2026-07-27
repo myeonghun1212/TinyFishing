@@ -19,15 +19,14 @@ namespace NanFishing.Data
         [Range(0.01f, 1f)] public float sensorSmoothing = 0.16f;
         [Min(1f)] public float maximumTiltAngle = 32f;
 
-        [Header("Reeling")]
-        [Range(0f, 1f)] public float startingTension = 0.25f;
-        [Min(0.01f)] public float reelProgressPerSecond = 0.23f;
-        [Min(0f)] public float escapeProgressPerSecond = 0.055f;
-        [Min(0f)] public float tensionGainPerSecond = 0.38f;
-        [Min(0f)] public float tensionRecoveryPerSecond = 0.32f;
-        [Range(0f, 1f)] public float directionDeadZone = 0.2f;
-        [Range(0f, 1f)] public float dangerTension = 0.82f;
-        [Min(0.1f)] public float breakGraceDuration = 0.7f;
+        [Header("Catch Zone")]
+        [Min(0.01f)] public float catchProgressPerSecond = 0.34f;
+        [Range(0.05f, 0.8f)] public float catchZoneHalfWidthMin = 0.16f;
+        [Range(0.05f, 0.8f)] public float catchZoneHalfWidthMax = 0.3f;
+        [Range(0.05f, 0.5f)] public float catchZoneMilestone = 0.2f;
+
+        [Header("Rod Raise Gesture")]
+        [Range(45f, 90f)] public float rodRaiseAngle = 70f;
 
         [Header("Score")]
         [Min(0)] public int quickCatchBonus = 75;

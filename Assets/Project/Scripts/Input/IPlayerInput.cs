@@ -14,6 +14,7 @@ namespace NanFishing.Input
         event Action<CastStrength> CastPerformed;
         float Direction { get; }
         bool IsReeling { get; }
+        bool IsRodRaised { get; }
         bool IsCalibrated { get; }
         bool HasMotionSensors { get; }
         float CalibrationProgress { get; }
