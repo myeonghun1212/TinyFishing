@@ -82,6 +82,7 @@ namespace NanFishing.Core
             {
                 return;
             }
+            input.CastPerformed -= HandleFirstCast;
 
             sessionRunning = true;
             highestRarity = 0;
