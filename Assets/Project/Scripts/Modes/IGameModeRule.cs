@@ -11,6 +11,7 @@ namespace NanFishing.Modes
         int MaxCombo { get; }
         void Begin();
         void Tick(float deltaTime);
+        void AddTime(float time);
         int RegisterCatch(int baseScore, int rarity, float catchDuration);
         void RegisterFailure();
     }

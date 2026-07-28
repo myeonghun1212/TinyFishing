@@ -34,6 +34,11 @@ namespace NanFishing.Modes
             TimeRemaining = Mathf.Max(0f, TimeRemaining - Mathf.Max(0f, deltaTime));
         }
 
+        public void AddTime(float time)
+        {
+            TimeRemaining = Mathf.Min(Duration, TimeRemaining + time);
+        }
+
         public int RegisterCatch(int baseScore, int rarity, float catchDuration)
         {
             Combo++;

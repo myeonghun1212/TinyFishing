@@ -29,6 +29,7 @@ namespace NanFishing.Data
         public float Resistance => resistance;
         public float MoveSpeed => moveSpeed;
         public float DirectionChangeInterval => directionChangeInterval;
+        public float SuccessReward => (int)rarity * 3;
         public Color Color => color;
         public GameObject Prefab => prefab;
 

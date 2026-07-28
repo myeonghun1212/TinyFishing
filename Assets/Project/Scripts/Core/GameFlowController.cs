@@ -111,11 +111,13 @@ namespace NanFishing.Core
                 highestRarity = Mathf.Max(highestRarity, (int)fish.Rarity);
                 save.RecordCatch(fish.Id);
                 hud.ShowCatch(fish.DisplayName, awarded, fish.Color);
+                mode.AddTime(fish.SuccessReward);
                 Handheld.Vibrate();
             }
             else
             {
                 mode.RegisterFailure();
+                mode.AddTime(-fish.SuccessReward * 0.5f);// 못잡으면 얻을 시간의 절반만큼 시간 감소
                 hud.ShowFailure();
             }
         }
