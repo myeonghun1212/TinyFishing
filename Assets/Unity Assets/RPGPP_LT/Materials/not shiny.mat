@@ -18,6 +18,7 @@ Material:
   - _MK_LIGHT_BANDED
   - _MK_RECEIVE_SHADOWS
   - _MK_SPECULAR_ISOTROPIC
+  - _MK_VERTEX_ANIMATION_PULSE
   - _MK_WRAPPED_DIFFUSE
   m_InvalidKeywords:
   - _RECEIVESHADOWS_ON
@@ -232,8 +233,8 @@ Material:
     - _Surface: 0
     - _ThresholdMapScale: 1
     - _UVSec: 0
-    - _VertexAnimation: 0
-    - _VertexAnimationIntensity: 0.05
+    - _VertexAnimation: 2
+    - _VertexAnimationIntensity: 0.004
     - _VertexAnimationStutter: 0
     - _WrappedLighting: 1
     - _ZTest: 4
@@ -250,6 +251,6 @@ Material:
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimDarkColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
-    - _VertexAnimationFrequency: {r: 2.5, g: 2.5, b: 2.5, a: 1}
+    - _VertexAnimationFrequency: {r: 1.5, g: 1.5, b: 1.5, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
