@@ -7018,6 +7018,8 @@ MonoBehaviour:
   gaugeTrack: {fileID: 141592390}
   fishMarker: {fileID: 82230621}
   playerMarker: {fileID: 1125043672}
+  playerMarkerImage: {fileID: 1125043670}
+  playerMarkerReelingDarken: 0.926
   fishMarkerImage: {fileID: 82230622}
   fishSafeSprite: {fileID: 21300000, guid: 58e8bbe5908e63d49a81a2456a20f03b, type: 3}
   fishDangerSprite: {fileID: 21300000, guid: 1b52a54157806cd40b5c3dc9fee8c6f0, type: 3}
@@ -7067,6 +7069,7 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: b18755bd4b8a41c44b1f67f7fdad9b4e, type: 2}
   invertHorizontal: 0
   invertVertical: 0
+  swapTiltAxes: 1
 --- !u!4 &1209684432
 Transform:
   m_ObjectHideFlags: 0

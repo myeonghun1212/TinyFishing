@@ -129,20 +129,24 @@ private void HandleStateChanged(TinyFishingState state)
                     }
                     SetProgress(0f);
                     ResetRig();
-                    SetPlayerMarkerDarkened(false);
                     break;
                 case TinyFishingState.WaitingForBite:
                     instructionText.text = "Waiting for a bite...";
-                    SetPlayerMarkerDarkened(false);
                     break;
                 case TinyFishingState.Reeling:
                     instructionText.text = "Tilt to aim, tap when green!";
-                    SetPlayerMarkerDarkened(true);
                     break;
                 case TinyFishingState.RoundResult:
                     instructionText.text = string.Empty;
-                    SetPlayerMarkerDarkened(false);
                     break;
+            }
+        }
+
+        private void Update()
+        {
+            if (rodInput != null)
+            {
+                SetPlayerMarkerDarkened(rodInput.IsPressed);
             }
         }
 

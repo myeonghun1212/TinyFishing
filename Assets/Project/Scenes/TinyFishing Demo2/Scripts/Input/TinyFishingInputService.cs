@@ -5,11 +5,12 @@ using UnityEngine.InputSystem;
 
 namespace TinyFishing.Input
 {
-    // Cast = shake the phone. Reel = discrete tap.
-    // Aim (both left/right and up/down) is driven by phone tilt when sensors are present,
-    // and by mouse/touch drag otherwise (or in addition, on-device, if the player prefers
-    // to drag rather than physically tilt). A press only counts as a drag once it moves past
-    // a small threshold; short, mostly-still presses are treated as reel taps instead.
+    // Cast = shake the phone. Aim (both left/right and up/down) is driven by phone tilt when
+    // sensors are present, and by mouse/touch drag otherwise (or in addition, on-device, if the
+    // player prefers to drag rather than physically tilt). A press only counts as aiming once it
+    // moves past a small threshold - a plain tap never repositions the rod.
+    // Reel = a second finger touching down while the first is held (multitouch), or, with only
+    // a mouse available (Editor/desktop), a short click that isn't a drag.
     // Falls back to keyboard so the demo is fully playable in the Editor without a device attached.
     public sealed class TinyFishingInputService : MonoBehaviour, ITinyFishingInput
     {
@@ -22,6 +23,9 @@ namespace TinyFishing.Input
         [SerializeField] private bool invertHorizontal;
         [SerializeField] private bool invertVertical;
 
+        [Tooltip("On some devices the attitude sensor's roll/pitch come back on swapped axes, so tilting left/right ends up moving the rod up/down instead of side to side. Enable this to swap them back; use Invert Horizontal/Vertical above if a direction still comes out reversed after swapping.")]
+        [SerializeField] private bool swapTiltAxes = true;
+
 
         private bool hasMotionSensors;
         private Quaternion baselineAttitude = Quaternion.identity;
@@ -33,6 +37,7 @@ namespace TinyFishing.Input
 
         private bool pointerDown;
         private bool isDragging;
+        private int primaryTouchId = -1;
         private Vector2 pointerDownPosition;
         private float pointerDownTime;
         private float dragHorizontal;
@@ -44,6 +49,8 @@ namespace TinyFishing.Input
         public float Direction { get; private set; }
         public float VerticalDirection { get; private set; }
         public bool IsReady { get; private set; }
+        public bool IsPressed => pointerDown;
+
 
         public void Configure(TinyFishingConfig fishingConfig)
         {
@@ -93,84 +100,168 @@ namespace TinyFishing.Input
 
         // Drag takes priority over tilt/keyboard while active, so a player can always grab
         // the rod directly with a finger or the mouse regardless of what device they're on.
+        // Touch and mouse are handled separately: touch supports true multitouch (a second
+        // finger reels while the first is held), which the single-pointer mouse path can't do,
+        // so mouse keeps the old short-click-to-reel behaviour for Editor/desktop testing.
 private void UpdatePointerDrag()
         {
-            if (!TryGetPointerPosition(out var currentPosition, out var pressed))
+            // Only route to the touch path when a touch is actually in play - many PCs/laptops
+            // enumerate a Touchscreen device even when it's never used, and routing there
+            // unconditionally would silently swallow all mouse input on those machines.
+            var touchActive = Touchscreen.current != null && (primaryTouchId >= 0 || AnyTouchPressed());
+            if (touchActive)
+            {
+                UpdateTouchInput();
+                return;
+            }
+
+            UpdateMouseInput();
+        }
+
+        private static bool AnyTouchPressed()
+        {
+            foreach (var touch in Touchscreen.current.touches)
+            {
+                if (touch.press.isPressed)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void UpdateTouchInput()
+        {
+            var touches = Touchscreen.current.touches;
+
+            if (pointerDown)
+            {
+                var primaryStillDown = false;
+                foreach (var touch in touches)
+                {
+                    if (touch.touchId.ReadValue() == primaryTouchId && touch.press.isPressed)
+                    {
+                        UpdateDrag(touch.position.ReadValue());
+                        primaryStillDown = true;
+                        break;
+                    }
+                }
+
+                if (!primaryStillDown)
+                {
+                    // Primary finger lifted. Touch reeling is handled entirely by the second-finger
+                    // gesture below, not by tap-on-release, so there's nothing else to do here.
+                    EndPress(allowTapReel: false);
+                    primaryTouchId = -1;
+                    return;
+                }
+
+                // A second finger touching down while the first is held reels the fish in,
+                // regardless of whether the first finger is aiming (dragging) or just resting.
+                foreach (var touch in touches)
+                {
+                    if (touch.touchId.ReadValue() != primaryTouchId && touch.press.wasPressedThisFrame)
+                    {
+                        ReelTapPerformed?.Invoke();
+                        break;
+                    }
+                }
+
+                return;
+            }
+
+            foreach (var touch in touches)
+            {
+                if (touch.press.isPressed)
+                {
+                    primaryTouchId = touch.touchId.ReadValue();
+                    BeginPress(touch.position.ReadValue());
+                    break;
+                }
+            }
+        }
+
+        private void UpdateMouseInput()
+        {
+            if (Mouse.current == null)
             {
                 return;
             }
 
+            var currentPosition = Mouse.current.position.ReadValue();
+            var pressed = Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed;
+
             if (pressed && !pointerDown)
             {
-                // Press started. Anchor the drag to whatever Direction/VerticalDirection the
-                // rod is already holding, so a fresh click doesn't snap the rod back toward
-                // zero the instant the drag threshold is crossed - it just continues from
-                // wherever it currently is.
-                pointerDown = true;
-                isDragging = false;
-                pointerDownPosition = currentPosition;
-                pointerDownTime = Time.unscaledTime;
-                directionAtPressStart = Direction;
-                verticalAtPressStart = VerticalDirection;
-                dragCastTriggered = false;
+                BeginPress(currentPosition);
             }
             else if (pressed && pointerDown)
             {
-                var offset = currentPosition - pointerDownPosition;
-                if (!isDragging && offset.magnitude >= config.dragStartThreshold)
-                {
-                    isDragging = true;
-                }
-
-                if (isDragging)
-                {
-                    var range = Mathf.Max(1f, config.dragRange);
-                    dragHorizontal = Mathf.Clamp(directionAtPressStart + offset.x / range, -1f, 1f);
-                    dragVertical = Mathf.Clamp(verticalAtPressStart + offset.y / range, -1f, 1f);
-                    ApplyAim(dragHorizontal, dragVertical);
-
-                    // A big enough vertical flick also casts, same as shaking the phone.
-                    if (!dragCastTriggered && castCooldownTimer <= 0f
-                        && Mathf.Abs(offset.y) >= config.dragCastThreshold)
-                    {
-                        dragCastTriggered = true;
-                        TriggerCast();
-                    }
-                }
+                UpdateDrag(currentPosition);
             }
             else if (!pressed && pointerDown)
             {
-                // Release: a short, mostly-still press counts as a reel tap.
-                var heldFor = Time.unscaledTime - pointerDownTime;
-                if (!isDragging && heldFor <= config.tapMaxDuration)
-                {
-                    ReelTapPerformed?.Invoke();
-                }
-
-                pointerDown = false;
-                isDragging = false;
+                EndPress(allowTapReel: true);
             }
         }
 
-        private static bool TryGetPointerPosition(out Vector2 position, out bool pressed)
+        // Press started. Anchor the drag to whatever Direction/VerticalDirection the rod is
+        // already holding, so a fresh press doesn't snap the rod back toward zero the instant
+        // the drag threshold is crossed - it just continues from wherever it currently is.
+        private void BeginPress(Vector2 position)
         {
-            if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+            pointerDown = true;
+            isDragging = false;
+            pointerDownPosition = position;
+            pointerDownTime = Time.unscaledTime;
+            directionAtPressStart = Direction;
+            verticalAtPressStart = VerticalDirection;
+            dragCastTriggered = false;
+        }
+
+        // Only actually moves the rod once the press has moved past the drag threshold - a
+        // press that never crosses it (a tap) never touches Direction/VerticalDirection.
+        private void UpdateDrag(Vector2 currentPosition)
+        {
+            var offset = currentPosition - pointerDownPosition;
+            if (!isDragging && offset.magnitude >= DpiScaledPixels(config.dragStartThreshold))
             {
-                position = Touchscreen.current.primaryTouch.position.ReadValue();
-                pressed = true;
-                return true;
+                isDragging = true;
             }
 
-            if (Mouse.current != null)
+            if (isDragging)
             {
-                position = Mouse.current.position.ReadValue();
-                pressed = Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed;
-                return true;
+                var range = Mathf.Max(1f, DpiScaledPixels(config.dragRange));
+                dragHorizontal = Mathf.Clamp(directionAtPressStart + offset.x / range, -1f, 1f);
+                dragVertical = Mathf.Clamp(verticalAtPressStart + offset.y / range, -1f, 1f);
+                ApplyAim(dragHorizontal, dragVertical);
+
+                // A big enough vertical flick also casts, same as shaking the phone.
+                if (!dragCastTriggered && castCooldownTimer <= 0f
+                    && Mathf.Abs(offset.y) >= DpiScaledPixels(config.dragCastThreshold))
+                {
+                    dragCastTriggered = true;
+                    TriggerCast();
+                }
+            }
+        }
+
+        // allowTapReel is only true on the mouse path - touch reeling is handled by the
+        // second-finger gesture instead, since a plain single-touch tap should never reel or
+        // move the rod (that's what read as an accidental rod-position jump on real devices).
+        private void EndPress(bool allowTapReel)
+        {
+            if (allowTapReel && !isDragging)
+            {
+                var heldFor = Time.unscaledTime - pointerDownTime;
+                if (heldFor <= config.tapMaxDuration)
+                {
+                    ReelTapPerformed?.Invoke();
+                }
             }
 
-            position = Vector2.zero;
-            pressed = false;
-            return false;
+            pointerDown = false;
+            isDragging = false;
         }
 
         // Drag sets Direction/VerticalDirection directly while active (see UpdatePointerDrag).
@@ -196,6 +287,11 @@ private void UpdateTilt()
 
                 var tiltDirection = Mathf.Clamp(roll / Mathf.Max(1f, config.maximumTiltAngle), -1f, 1f);
                 var tiltVertical = Mathf.Clamp(-pitch / Mathf.Max(1f, config.maximumPitchAngle), -1f, 1f);
+
+                if (swapTiltAxes)
+                {
+                    (tiltDirection, tiltVertical) = (tiltVertical, tiltDirection);
+                }
 
                 ApplyAim(tiltDirection + keyboardDirection, tiltVertical + keyboardVertical);
                 return;
@@ -287,6 +383,18 @@ private void UpdateEditorFallback()
         private static float NormalizeAngle(float angle)
         {
             return angle > 180f ? angle - 360f : angle;
+        }
+
+        // Config drag/tap distances (dragStartThreshold, dragRange, dragCastThreshold) are tuned
+        // in "desktop" pixels around a ~160dpi reference. Real phone screens run at a much higher
+        // pixel density (400dpi+), so a fixed pixel threshold is tiny relative to a finger's
+        // natural jitter - a light tap easily exceeds it and gets misclassified as a drag, which
+        // is why reel taps landed far less reliably than tilt on device. Scaling by dpi keeps the
+        // physical (inches) distance consistent across devices.
+        private static float DpiScaledPixels(float desktopPixels)
+        {
+            var dpi = Screen.dpi > 0f ? Screen.dpi : 160f;
+            return desktopPixels * (dpi / 160f);
         }
     }
 }

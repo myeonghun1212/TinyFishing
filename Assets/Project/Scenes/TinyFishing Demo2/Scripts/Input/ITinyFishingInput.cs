@@ -23,6 +23,10 @@ namespace TinyFishing.Input
         // True once the input service has a valid baseline to compute tilt from.
         bool IsReady { get; }
 
+        // True while the player currently has the screen/mouse pressed down.
+        bool IsPressed { get; }
+
+
         // Recenters the tilt baseline to the phone's current resting position.
         void Recalibrate();
     }
