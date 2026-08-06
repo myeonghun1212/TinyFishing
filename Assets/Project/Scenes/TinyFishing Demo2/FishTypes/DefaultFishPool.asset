@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7abb027b8ef597b44a3a3b6a2fd31ca1, type: 3}
+  m_Name: DefaultFishPool
+  m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Data.FishPool
+  entries:
+  - fish: {fileID: 11400000, guid: 253b5043379e4eb79787101f93287227, type: 2}
+    enabled: 1
+    weight: 35
+    maxCatchesPerSession: 0
+    spawnCount: 4
+  - fish: {fileID: 11400000, guid: 133ef19d16814fd28cc8524cf46ba7d8, type: 2}
+    enabled: 1
+    weight: 25
+    maxCatchesPerSession: 0
+    spawnCount: 3
+  - fish: {fileID: 11400000, guid: 559f1510f89b4933b7ce5c808964d09f, type: 2}
+    enabled: 1
+    weight: 20
+    maxCatchesPerSession: 0
+    spawnCount: 3
+  - fish: {fileID: 11400000, guid: 46a678002265441da3afaa2a5722cb97, type: 2}
+    enabled: 1
+    weight: 15
+    maxCatchesPerSession: 0
+    spawnCount: 2
+  - fish: {fileID: 11400000, guid: a37b51589ed5456aa5a9f8c1d8bcfa37, type: 2}
+    enabled: 1
+    weight: 5
+    maxCatchesPerSession: 3
+    spawnCount: 1

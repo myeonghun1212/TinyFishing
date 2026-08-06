@@ -264,6 +264,34 @@ MonoBehaviour:
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
+--- !u!114 &-1026342151281603197
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66f335fb1ffd8684294ad653bf1c7564, type: 3}
+  m_Name: ColorAdjustments
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.ColorAdjustments
+  active: 1
+  postExposure:
+    m_OverrideState: 1
+    m_Value: 0
+  contrast:
+    m_OverrideState: 1
+    m_Value: 12
+  colorFilter:
+    m_OverrideState: 1
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
+  hueShift:
+    m_OverrideState: 1
+    m_Value: 0
+  saturation:
+    m_OverrideState: 1
+    m_Value: -5
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -282,6 +310,7 @@ MonoBehaviour:
   - {fileID: -2247632279869978953}
   - {fileID: 2496706344975447026}
   - {fileID: -6267068836080020416}
+  - {fileID: -1026342151281603197}
 --- !u!114 &2496706344975447026
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -294,7 +323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40e764624c3f5af42bd666e261c55e7b, type: 3}
   m_Name: TiltShiftVolume
   m_EditorClassIdentifier: FronkonGames.Artistic.TiltShift::FronkonGames.Artistic.TiltShift.TiltShiftVolume
-  active: 0
+  active: 1
   intensity:
     m_OverrideState: 1
     m_Value: 1

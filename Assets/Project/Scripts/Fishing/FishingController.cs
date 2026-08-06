@@ -146,11 +146,13 @@ namespace NanFishing.Fishing
             activeFish.Initialize(definition);
         }
 
-        private FishDefinition SelectFish()
+private FishDefinition SelectFish()
         {
             var roll = UnityEngine.Random.value;
-            var desiredRarity = roll < 0.1f ? FishRarity.Rare :
-                roll < 0.4f ? FishRarity.Uncommon : FishRarity.Common;
+            var desiredRarity = roll < 0.02f ? FishRarity.Legendary :
+                roll < 0.10f ? FishRarity.Epic :
+                roll < 0.25f ? FishRarity.Rare :
+                roll < 0.55f ? FishRarity.Uncommon : FishRarity.Common;
             var matches = Array.FindAll(catalog, fish => fish.Rarity == desiredRarity);
             return matches.Length > 0 ? matches[UnityEngine.Random.Range(0, matches.Length)] :
                 catalog[UnityEngine.Random.Range(0, catalog.Length)];
