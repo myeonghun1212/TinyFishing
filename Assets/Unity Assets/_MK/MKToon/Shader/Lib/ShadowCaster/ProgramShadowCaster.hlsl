@@ -112,7 +112,10 @@
 		UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(vertexOutput);
 
 		#ifdef MK_LOD_FADE_CROSSFADE
-			LODFadeCrossFade(vertexOutput.positionClip);
+			// SV_POSITION is always available to this fragment shader. positionClip is
+			// only present when MK_BARYCENTRIC_POS_CLIP is enabled, so using it here
+			// breaks the regular Android shadow-caster variants on current URP.
+			LODFadeCrossFade(svPositionClip);
 		#endif
 		
 		MKSurfaceData surfaceData = ComputeSurfaceData

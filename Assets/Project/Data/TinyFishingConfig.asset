@@ -27,7 +27,7 @@ MonoBehaviour:
   fallbackFishMoveSpeed: 1.4
   progressPerGoodTap: 0.14
   progressLossPerBadTap: 0.1
-  tiltUpTapBonusMultiplier: 0.65
+  tiltUpTapBonusMultiplier: 1.29
   tiltUpTapPenaltyMultiplier: 0.3
   tiltBonusAngleRange: 24
   rodMaxYawDegrees: 32
