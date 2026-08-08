@@ -111,6 +111,14 @@ private void Awake()
             gameManager.RoundResolved -= HandleRoundResolved;
         }
 
+        // Called by the HUD recalibration button. The current phone attitude becomes the
+        // new neutral pose and the rendered rod immediately returns to its rest rotation.
+        public void RecalibrateGyro()
+        {
+            rodInput?.Recalibrate();
+            rodController?.ResetRod();
+        }
+
 private void HandleStateChanged(TinyFishingState state)
         {
             switch (state)
