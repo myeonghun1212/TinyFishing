@@ -26,9 +26,11 @@ namespace TinyFishing.Input
         [Tooltip("On some devices the attitude sensor's roll/pitch come back on swapped axes, so tilting left/right ends up moving the rod up/down instead of side to side. Enable this to swap them back; use Invert Horizontal/Vertical above if a direction still comes out reversed after swapping.")]
         [SerializeField] private bool swapTiltAxes = true;
 
-
         private bool hasMotionSensors;
-        private Quaternion baselineAttitude = Quaternion.identity;
+        private Vector3 baselineEulerAngles;
+#if UNITY_EDITOR
+        private Quaternion editorBaselineAttitude = Quaternion.identity;
+#endif
         private Vector3 filteredAcceleration = Vector3.up;
         private Vector3 previousFilteredAcceleration = Vector3.up;
         private float castCooldownTimer;
@@ -61,7 +63,11 @@ namespace TinyFishing.Input
         {
             if (hasMotionSensors && AttitudeSensor.current != null)
             {
-                baselineAttitude = AttitudeSensor.current.attitude.ReadValue();
+                var attitude = AttitudeSensor.current.attitude.ReadValue();
+                baselineEulerAngles = attitude.eulerAngles;
+#if UNITY_EDITOR
+                editorBaselineAttitude = attitude;
+#endif
             }
             keyboardDirection = 0f;
             keyboardVertical = 0f;
@@ -74,17 +80,75 @@ namespace TinyFishing.Input
 
         private void OnEnable()
         {
-            hasMotionSensors = AttitudeSensor.current != null && Accelerometer.current != null;
+            hasMotionSensors = false;
+
+#if UNITY_EDITOR
+            // UnityRemoteTest owns sensor activation in the Editor. This service only waits
+            // until both Unity Remote devices are present and enabled.
+#else
+            InitializeMotionSensors();
+#endif
+            Recalibrate();
+        }
+
+#if UNITY_EDITOR
+        private void UpdateEditorMotionSensors()
+        {
             if (hasMotionSensors)
             {
-                InputSystem.EnableDevice(AttitudeSensor.current);
-                InputSystem.EnableDevice(Accelerometer.current);
+                return;
             }
+
+            var attitudeSensor = AttitudeSensor.current;
+            var accelerometer = Accelerometer.current;
+            if (attitudeSensor == null || accelerometer == null)
+            {
+                return;
+            }
+
+            if (!attitudeSensor.enabled || !accelerometer.enabled)
+            {
+                return;
+            }
+
+            hasMotionSensors = true;
             Recalibrate();
+        }
+#endif
+
+        private void InitializeMotionSensors()
+        {
+            hasMotionSensors = AttitudeSensor.current != null && Accelerometer.current != null;
+            if (!hasMotionSensors)
+            {
+                return;
+            }
+
+            InputSystem.EnableDevice(AttitudeSensor.current);
+            InputSystem.EnableDevice(Accelerometer.current);
         }
 
         private void Update()
         {
+#if UNITY_EDITOR
+            var attitudeSensor = AttitudeSensor.current;
+            var accelerometer = Accelerometer.current;
+
+            // Unity Remote can register each sensor at a different time. Keep checking in the
+            // Editor and enable every sensor as soon as it becomes available.
+            if (attitudeSensor != null && !attitudeSensor.enabled)
+            {
+                InputSystem.EnableDevice(attitudeSensor);
+            }
+
+            if (accelerometer != null && !accelerometer.enabled)
+            {
+                InputSystem.EnableDevice(accelerometer);
+            }
+            
+            UpdateEditorMotionSensors();
+#endif
+
             if (config == null)
             {
                 return;
@@ -103,7 +167,7 @@ namespace TinyFishing.Input
         // Touch and mouse are handled separately: touch supports true multitouch (a second
         // finger reels while the first is held), which the single-pointer mouse path can't do,
         // so mouse keeps the old short-click-to-reel behaviour for Editor/desktop testing.
-private void UpdatePointerDrag()
+        private void UpdatePointerDrag()
         {
             // Only route to the touch path when a touch is actually in play - many PCs/laptops
             // enumerate a Touchscreen device even when it's never used, and routing there
@@ -270,7 +334,7 @@ private void UpdatePointerDrag()
         // rod and having it stay put. Only an active tilt sensor or an active keyboard press
         // should override the held value; with neither, we simply leave Direction/VerticalDirection
         // untouched so they keep reading the last drag position.
-private void UpdateTilt()
+        private void UpdateTilt()
         {
             if (isDragging)
             {
@@ -280,10 +344,31 @@ private void UpdateTilt()
             if (hasMotionSensors && AttitudeSensor.current != null)
             {
                 var attitude = AttitudeSensor.current.attitude.ReadValue();
-                var relative = Quaternion.Inverse(baselineAttitude) * attitude;
-                var euler = relative.eulerAngles;
-                var roll = NormalizeAngle(euler.y);
-                var pitch = NormalizeAngle(euler.x);
+
+#if UNITY_EDITOR
+                // Unity Remote reports attitude in a different orientation from a player build.
+                // A relative rotation vector avoids the large Euler cross-axis coupling seen
+                // when the phone is tilted, and Remote's vertical axis needs to be reversed.
+                var relativeAttitude = Quaternion.Inverse(editorBaselineAttitude) * attitude;
+                relativeAttitude.ToAngleAxis(out var relativeAngle, out var relativeAxis);
+                if (relativeAngle > 180f)
+                {
+                    relativeAngle -= 360f;
+                }
+                var relativeRotation = relativeAxis * relativeAngle;
+                // Unity Remote's X/Y rotation components arrive transposed relative to the
+                // player build. Account for that here before the shared swap/invert settings.
+                var roll = relativeRotation.x;
+                var pitch = -relativeRotation.y;
+#else
+                var currentEuler = attitude.eulerAngles;
+
+                // Recalibration only offsets each raw sensor axis. It must never rotate or
+                // reinterpret the axes themselves, otherwise X/Y can exchange when the new
+                // neutral pose includes roll. DeltaAngle also handles the 0/360 wraparound.
+                var roll = Mathf.DeltaAngle(baselineEulerAngles.y, currentEuler.y);
+                var pitch = Mathf.DeltaAngle(baselineEulerAngles.x, currentEuler.x);
+#endif
 
                 var tiltDirection = Mathf.Clamp(roll / Mathf.Max(1f, config.maximumTiltAngle), -1f, 1f);
                 var tiltVertical = Mathf.Clamp(-pitch / Mathf.Max(1f, config.maximumPitchAngle), -1f, 1f);
@@ -304,7 +389,7 @@ private void UpdateTilt()
             // else: no sensors, no keyboard input, not dragging - hold the last position.
         }
 
-// Single choke point for writing Direction/VerticalDirection so the invert toggles
+        // Single choke point for writing Direction/VerticalDirection so the invert toggles
         // above apply consistently no matter which input source (drag, tilt, keyboard) is active.
         private void ApplyAim(float rawHorizontal, float rawVertical)
         {
@@ -331,7 +416,7 @@ private void UpdateTilt()
             }
         }
 
-private void UpdateEditorFallback()
+        private void UpdateEditorFallback()
         {
 #if UNITY_EDITOR || UNITY_STANDALONE
             if (Keyboard.current == null)
@@ -378,11 +463,6 @@ private void UpdateEditorFallback()
         {
             castCooldownTimer = config.castCooldown;
             CastPerformed?.Invoke();
-        }
-
-        private static float NormalizeAngle(float angle)
-        {
-            return angle > 180f ? angle - 360f : angle;
         }
 
         // Config drag/tap distances (dragStartThreshold, dragRange, dragCastThreshold) are tuned
