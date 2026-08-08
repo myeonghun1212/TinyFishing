@@ -1,16 +1,16 @@
 ﻿<Solution>
   <Project Path="MK.Toon.Editor.csproj" />
-  <Project Path="Boxophobic.Utils.Editor.csproj" />
   <Project Path="MK.Toon.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Boxophobic.Utils.Scripts.csproj" />
   <Project Path="MK.MeshUtility.csproj" />
+  <Project Path="Boxophobic.Utils.Editor.csproj" />
   <Project Path="FronkonGames.Artistic.TiltShift.csproj" />
   <Project Path="MK.Toon.URP.Editor.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="FronkonGames.Artistic.TiltShift.Editor.csproj" />
-  <Project Path="MK.RampCreator.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="MK.MKTextureChannelPacker.csproj" />
-  <Project Path="MK.Toon.URP.csproj" />
   <Project Path="Boxophobic.SkyboxCubemapExtended.Editor.csproj" />
+  <Project Path="MK.RampCreator.csproj" />
+  <Project Path="MK.Toon.URP.csproj" />
 </Solution>
