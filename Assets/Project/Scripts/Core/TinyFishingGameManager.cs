@@ -29,7 +29,7 @@ namespace TinyFishing.Core
         private ITinyFishingInput input;
         private FishDriftDriver fish;
         private ReelProgressModel reelModel;
-        private FishDefinition currentFish;
+        [SerializeField] private FishDefinition currentFish;
         private readonly Dictionary<FishDefinition, int> sessionCatchCounts = new Dictionary<FishDefinition, int>();
 
         private int score;

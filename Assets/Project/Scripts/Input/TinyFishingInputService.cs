@@ -19,6 +19,9 @@ namespace TinyFishing.Input
 
         [SerializeField] private TinyFishingConfig config;
 
+        [Header("Input State")]
+        [SerializeField] private TinyFishingInputState inputState = TinyFishingInputState.Gyro;
+
         [Header("Invert Axis")]
         [SerializeField] private bool invertHorizontal;
         [SerializeField] private bool invertVertical;
@@ -52,11 +55,32 @@ namespace TinyFishing.Input
         public float VerticalDirection { get; private set; }
         public bool IsReady { get; private set; }
         public bool IsPressed => pointerDown;
+        public TinyFishingInputState InputState => inputState;
 
 
         public void Configure(TinyFishingConfig fishingConfig)
         {
             config = fishingConfig;
+        }
+
+        public void SetInputState(TinyFishingInputState state)
+        {
+            if (inputState == state && IsReady)
+            {
+                return;
+            }
+
+            inputState = state;
+            ResetPointerState();
+
+            if (inputState == TinyFishingInputState.Gyro)
+            {
+#if !UNITY_EDITOR
+                InitializeMotionSensors();
+#endif
+            }
+
+            Recalibrate();
         }
 
         public void Recalibrate()
@@ -86,7 +110,10 @@ namespace TinyFishing.Input
             // UnityRemoteTest owns sensor activation in the Editor. This service only waits
             // until both Unity Remote devices are present and enabled.
 #else
+            if (inputState == TinyFishingInputState.Gyro)
+            {
             InitializeMotionSensors();
+            }
 #endif
             Recalibrate();
         }
@@ -94,7 +121,7 @@ namespace TinyFishing.Input
 #if UNITY_EDITOR
         private void UpdateEditorMotionSensors()
         {
-            if (hasMotionSensors)
+            if (inputState != TinyFishingInputState.Gyro || hasMotionSensors)
             {
                 return;
             }
@@ -136,12 +163,12 @@ namespace TinyFishing.Input
 
             // Unity Remote can register each sensor at a different time. Keep checking in the
             // Editor and enable every sensor as soon as it becomes available.
-            if (attitudeSensor != null && !attitudeSensor.enabled)
+            if (inputState == TinyFishingInputState.Gyro && attitudeSensor != null && !attitudeSensor.enabled)
             {
                 InputSystem.EnableDevice(attitudeSensor);
             }
 
-            if (accelerometer != null && !accelerometer.enabled)
+            if (inputState == TinyFishingInputState.Gyro && accelerometer != null && !accelerometer.enabled)
             {
                 InputSystem.EnableDevice(accelerometer);
             }
@@ -156,10 +183,54 @@ namespace TinyFishing.Input
 
             castCooldownTimer = Mathf.Max(0f, castCooldownTimer - Time.unscaledDeltaTime);
 
-            UpdatePointerDrag();
-            UpdateTilt();
-            UpdateShake();
             UpdateEditorFallback();
+
+            switch (inputState)
+            {
+                case TinyFishingInputState.TouchScreen:
+                    UpdatePointerDrag();
+                    UpdateKeyboardAim();
+                    break;
+                case TinyFishingInputState.Gyro:
+                    UpdateGyroReelInput();
+                    UpdateTilt();
+                    UpdateShake();
+                    break;
+            }
+        }
+
+        // Gyro owns aim/cast in this state. Touch or mouse is therefore free to be a simple
+        // one-press reel input instead of competing with the sensor for rod direction.
+        private void UpdateGyroReelInput()
+        {
+            var touchPressed = Touchscreen.current != null && AnyTouchPressed();
+            var mousePressed = Mouse.current != null
+                && (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed);
+
+            if (!pointerDown)
+            {
+                var touchStarted = false;
+                if (Touchscreen.current != null)
+                {
+                    foreach (var touch in Touchscreen.current.touches)
+                    {
+                        if (touch.press.wasPressedThisFrame)
+                        {
+                            touchStarted = true;
+                            break;
+                        }
+                    }
+                }
+
+                var mouseStarted = Mouse.current != null
+                    && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame);
+                if (touchStarted || mouseStarted)
+                {
+                    ReelTapPerformed?.Invoke();
+                }
+            }
+
+            pointerDown = touchPressed || mousePressed;
         }
 
         // Drag takes priority over tilt/keyboard while active, so a player can always grab
@@ -389,6 +460,15 @@ namespace TinyFishing.Input
             // else: no sensors, no keyboard input, not dragging - hold the last position.
         }
 
+        private void UpdateKeyboardAim()
+        {
+            if (!isDragging
+                && (Mathf.Abs(keyboardDirection) > 0.0001f || Mathf.Abs(keyboardVertical) > 0.0001f))
+            {
+                ApplyAim(keyboardDirection, keyboardVertical);
+            }
+        }
+
         // Single choke point for writing Direction/VerticalDirection so the invert toggles
         // above apply consistently no matter which input source (drag, tilt, keyboard) is active.
         private void ApplyAim(float rawHorizontal, float rawVertical)
@@ -463,6 +543,14 @@ namespace TinyFishing.Input
         {
             castCooldownTimer = config.castCooldown;
             CastPerformed?.Invoke();
+        }
+
+        private void ResetPointerState()
+        {
+            pointerDown = false;
+            isDragging = false;
+            primaryTouchId = -1;
+            dragCastTriggered = false;
         }
 
         // Config drag/tap distances (dragStartThreshold, dragRange, dragCastThreshold) are tuned

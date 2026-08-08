@@ -2,6 +2,12 @@ using System;
 
 namespace TinyFishing.Input
 {
+    public enum TinyFishingInputState
+    {
+        TouchScreen,
+        Gyro
+    }
+
     // Abstraction over the physical input for TinyFishing so the game manager
     // never talks to sensors/touch directly.
     public interface ITinyFishingInput
@@ -26,6 +32,11 @@ namespace TinyFishing.Input
         // True while the player currently has the screen/mouse pressed down.
         bool IsPressed { get; }
 
+        // The active physical-input route. Lobby/settings UI can switch this later without
+        // needing to know how the service handles the individual devices.
+        TinyFishingInputState InputState { get; }
+
+        void SetInputState(TinyFishingInputState state);
 
         // Recenters the tilt baseline to the phone's current resting position.
         void Recalibrate();

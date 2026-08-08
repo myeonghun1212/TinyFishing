@@ -19,6 +19,6 @@ MonoBehaviour:
   resistance: 1.024
   maxHealth: 200
   moveSpeed: 1.61
-  directionChangeInterval: 0.58
+  directionChangeInterval: 0.82
   color: {r: 1, g: 0.75, b: 0.15, a: 1}
   prefab: {fileID: 3793146743532390487, guid: 89c7d56787878bd45a97b081a69b5b43, type: 3}
