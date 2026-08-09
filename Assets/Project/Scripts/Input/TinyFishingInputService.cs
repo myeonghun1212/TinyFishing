@@ -63,6 +63,12 @@ namespace TinyFishing.Input
             config = fishingConfig;
         }
 
+        private void Awake()
+        {
+            // The start menu persists the player's choice before loading Pond FPV.
+            inputState = TinyFishingInputPreferences.Load(inputState);
+        }
+
         public void SetInputState(TinyFishingInputState state)
         {
             if (inputState == state && IsReady)
