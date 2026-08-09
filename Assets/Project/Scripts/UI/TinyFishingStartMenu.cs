@@ -30,6 +30,16 @@ namespace TinyFishing.UI
         [SerializeField] private Color selectedColor = new(0.16f, 0.62f, 0.82f, 1f);
         [SerializeField] private Color unselectedColor = new(0.16f, 0.21f, 0.27f, 1f);
 
+        [Header("Text (editable)")]
+        [Tooltip("Shown in sensorStatusText once the gyro is calibrated and armed.")]
+        [SerializeField] private string gyroReadyMessage = "자이로 준비 완료 - 흔들어서 시작하세요";
+        [Tooltip("Shown in sensorStatusText when motion sensors aren't available on this device.")]
+        [SerializeField] private string sensorUnavailableMessage = "동작 센서를 사용할 수 없습니다\n(에디터: Enter 키를 눌러 테스트)";
+        [Tooltip("Shown in selectedModeText when Gyro mode is selected.")]
+        [SerializeField] private string gyroModeLabel = "자이로";
+        [Tooltip("Shown in selectedModeText when Touch Screen mode is selected.")]
+        [SerializeField] private string touchModeLabel = "터치스크린";
+
         [Header("Swing Detection")]
         [SerializeField, Min(0.1f)] private float swingThreshold = 4.72f;
         [SerializeField, Range(0.01f, 1f)] private float sensorSmoothing = 0.25f;
@@ -116,8 +126,8 @@ namespace TinyFishing.UI
             if (sensorStatusText != null)
             {
                 sensorStatusText.text = sensorsReady
-                    ? "Gyro ready - swing the phone to start"
-                    : "Motion sensor unavailable\n(Editor: press Enter to test)";
+                    ? gyroReadyMessage
+                    : sensorUnavailableMessage;
             }
         }
 
@@ -147,7 +157,7 @@ namespace TinyFishing.UI
 
             if (selectedModeText != null)
             {
-                selectedModeText.text = gyroSelected ? "GYRO" : "TOUCH SCREEN";
+                selectedModeText.text = gyroSelected ? gyroModeLabel : touchModeLabel;
             }
             if (gyroButtonImage != null)
             {

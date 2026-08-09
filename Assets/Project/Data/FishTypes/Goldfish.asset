@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ae063504da98bf4c9f1a5a27de0ddaa, type: 3}
-  m_Name: GoldenKoi
+  m_Name: Goldfish
   m_EditorClassIdentifier: Assembly-CSharp::NanFishing.Data.FishDefinition
   fishId: gold_fish
   displayName: Gold Fish
   rarity: 4
   baseScore: 750
-  resistance: 1.024
+  resistance: 1.2
   maxHealth: 400
   progressDecayRate: 0.148
   moveSpeed: 1.61

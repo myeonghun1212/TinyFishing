@@ -58,6 +58,26 @@ namespace TinyFishing.UI
         [Header("Feedback")]
         [SerializeField] private TextMeshProUGUI instructionText;
         [SerializeField] private TextMeshProUGUI feedbackText;
+
+        [Header("Feedback Text (editable)")]
+        [Tooltip("Shown while ReadyToCast, before the player casts.")]
+        [SerializeField] private string readyToCastMessage = "폰을 흔들어 낚싯대를 던지세요!";
+        [Tooltip("Shown during WaitingForBite, before a fish has been chosen.")]
+        [SerializeField] private string waitingForBiteMessage = "입질을 기다리는 중...";
+        [Tooltip("Shown during Approaching, while the fish swims toward the bob.")]
+        [SerializeField] private string approachingMessage = "미끼 주변을 맴도는 중...";
+        [Tooltip("Shown during Biting, while the hook window is open.")]
+        [SerializeField] private string bitingMessage = "지금 탭하세요!";
+        [Tooltip("Shown during Reeling.")]
+        [SerializeField] private string reelingMessage = "기울여서 조준하고, 초록색일 때 탭하세요!";
+        [Tooltip("Shown in feedbackText when a round resolves as a catch.")]
+        [SerializeField] private string caughtMessage = "낚았다!";
+        [Tooltip("Shown in feedbackText when a round resolves as a miss.")]
+        [SerializeField] private string gotAwayMessage = "놓쳤어요";
+        [Tooltip("Prefix shown before the score value, e.g. '점수\\n123'.")]
+        [SerializeField] private string scoreLabel = "점수";
+        [Tooltip("Prefix shown before the best-score value, e.g. '최고 기록: 123'.")]
+        [SerializeField] private string bestLabel = "최고 기록";
         [SerializeField] private TextMeshProUGUI caughtFishNameText;
         [SerializeField] private Transform caughtFishModelAnchor;
 
@@ -203,7 +223,7 @@ private void HandleStateChanged(TinyFishingState state)
             switch (state)
             {
                 case TinyFishingState.ReadyToCast:
-                    instructionText.text = "Shake your phone to cast!";
+                    instructionText.text = readyToCastMessage;
                     SetGaugeVisible(false, instant: true);
                     feedbackText.text = string.Empty;
                     if (caughtFishNameText != null)
@@ -219,16 +239,16 @@ private void HandleStateChanged(TinyFishingState state)
                     ResetRig();
                     break;
                 case TinyFishingState.WaitingForBite:
-                    instructionText.text = "Waiting for a bite...";
+                    instructionText.text = waitingForBiteMessage;
                     break;
                 case TinyFishingState.Approaching:
-                    instructionText.text = "Something's circling the bait...";
+                    instructionText.text = approachingMessage;
                     break;
                 case TinyFishingState.Biting:
-                    instructionText.text = "Tap now!";
+                    instructionText.text = bitingMessage;
                     break;
                 case TinyFishingState.Reeling:
-                    instructionText.text = "Tilt to aim, tap when green!";
+                    instructionText.text = reelingMessage;
                     SetGaugeVisible(true, instant: false);
                     break;
                 case TinyFishingState.RoundResult:
@@ -262,9 +282,9 @@ private void HandleStateChanged(TinyFishingState state)
 
         private void HandleScoreChanged(int score, int fishCaught, int bestScore)
         {
-            scoreText.text = $"SCORE\n{score}";
+            scoreText.text = $"{scoreLabel}\n{score}";
             fishCountText.text = $"x{fishCaught}";
-            bestText.text = $"BEST: {bestScore}";
+            bestText.text = $"{bestLabel}: {bestScore}";
         }
 
 private void HandleReelingUpdated(float playerDirection, float fishDirection, bool aligned, float progress)
@@ -381,7 +401,7 @@ private void HandleReelingUpdated(float playerDirection, float fishDirection, bo
 private void HandleRoundResolved(bool caught, FishDefinition fish)
         {
             feedbackText.color = caught ? alignedColor : misalignedColor;
-            feedbackText.text = caught ? "CAUGHT!" : "IT GOT AWAY";
+            feedbackText.text = caught ? caughtMessage : gotAwayMessage;
 
             if (caughtFishModelInstance != null)
             {

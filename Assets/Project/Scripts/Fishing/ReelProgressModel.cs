@@ -23,7 +23,6 @@ namespace TinyFishing.Fishing
         // Baseline a fish's MaxHealth is balanced against - a fish with MaxHealth
         // equal to this needs the same number of good taps as before this stat existed.
         private const float BaselineHealth = 100f;
-        private float resistance = 1f;
         private float healthDivisor = 1f;
         private float decayRate;
 
@@ -32,13 +31,12 @@ namespace TinyFishing.Fishing
             config = fishingConfig;
         }
 
-        public void Reset(float fishResistance = 1f, float fishMaxHealth = BaselineHealth, float fishProgressDecayRate = -1f)
+        public void Reset(float fishMaxHealth = BaselineHealth, float fishProgressDecayRate = -1f)
         {
             Progress = Mathf.Clamp01(config.startingProgress);
             HasEscaped = false;
             LastTapWasGood = false;
             TimeAtZero = 0f;
-            resistance = Mathf.Max(0.01f, fishResistance);
             healthDivisor = Mathf.Max(0.01f, fishMaxHealth) / BaselineHealth;
             // A negative sentinel means "use the config fallback" - lets callers omit a
             // per-fish rate (e.g. when no FishDefinition is available for the round).
@@ -95,11 +93,11 @@ namespace TinyFishing.Fishing
             {
                 // Tilting the rod/device upward boosts how much progress a good tap earns.
                 var tiltBonus = 1f + tiltAmount * config.tiltUpTapBonusMultiplier;
-                // Higher resistance and higher MaxHealth both mean more good taps are needed to land the fish.
-                var gain = config.progressPerGoodTap * tiltBonus / (resistance * healthDivisor);
+                // Higher MaxHealth means more good taps are needed to land the fish.
+                var gain = config.progressPerGoodTap * tiltBonus / healthDivisor;
                 Progress += gain;
                 Debug.Log($"[ReelTap] GOOD tap: +{gain:F4} pts (base={config.progressPerGoodTap:F4}, " +
-                    $"tiltAngle={tiltAngleDegrees:F1}deg, tiltBonus={tiltBonus:F2}x, resistance={resistance:F2}, " +
+                    $"tiltAngle={tiltAngleDegrees:F1}deg, tiltBonus={tiltBonus:F2}x, " +
                     $"healthDivisor={healthDivisor:F2}) progress {progressBefore:F4} -> {Mathf.Clamp01(Progress):F4}");
             }
             else
@@ -107,12 +105,10 @@ namespace TinyFishing.Fishing
                 // Tilting the rod/device upward also amplifies how much a bad tap costs,
                 // via its own separate multiplier so the two can be tuned independently.
                 var tiltPenalty = 1f + tiltAmount * config.tiltUpTapPenaltyMultiplier;
-                // Higher resistance also punishes a bad tap harder, mirroring how tougher
-                // fish resist being reeled in when you fall out of alignment.
-                var loss = config.progressLossPerBadTap * resistance * tiltPenalty;
+                var loss = config.progressLossPerBadTap * tiltPenalty;
                 Progress -= loss;
                 Debug.Log($"[ReelTap] BAD tap: -{loss:F4} pts (base={config.progressLossPerBadTap:F4}, " +
-                    $"tiltAngle={tiltAngleDegrees:F1}deg, tiltPenalty={tiltPenalty:F2}x, resistance={resistance:F2}) " +
+                    $"tiltAngle={tiltAngleDegrees:F1}deg, tiltPenalty={tiltPenalty:F2}x) " +
                     $"progress {progressBefore:F4} -> {Mathf.Clamp01(Progress):F4}");
             }
 

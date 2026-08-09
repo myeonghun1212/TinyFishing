@@ -152,7 +152,7 @@ namespace TinyFishing.Core
             currentFish = SelectFish();
             if (currentFish != null)
             {
-                fish.SetFishOverride(currentFish.MoveSpeed, currentFish.DirectionChangeInterval);
+                fish.SetFishOverride(currentFish.MoveSpeed, currentFish.DirectionChangeInterval / currentFish.Resistance);
             }
             else
             {
@@ -210,7 +210,13 @@ namespace TinyFishing.Core
             {
                 case TinyFishingState.WaitingForBite:
                 case TinyFishingState.Approaching:
-                    // Reeling before the bob has even dipped spooks the fish off early.
+                    // Taps before the bob has even splashed down are ignored outright - nothing
+                    // is happening yet, so there's no fish to spook. Once it's in the water,
+                    // an early tap (before the bite dip) still spooks the fish off early.
+                    if (bobController != null && !bobController.IsInWater)
+                    {
+                        return;
+                    }
                     AbortBite();
                     break;
 
@@ -281,8 +287,7 @@ namespace TinyFishing.Core
             bobDipped = false;
 
             fish.Reset();
-            reelModel.Reset(currentFish != null ? currentFish.Resistance : 1f,
-                currentFish != null ? currentFish.MaxHealth : 100f,
+            reelModel.Reset(currentFish != null ? currentFish.MaxHealth : 100f,
                 currentFish != null ? currentFish.ProgressDecayRate : config.fallbackProgressDecayRate);
             SetState(TinyFishingState.Reeling);
         }

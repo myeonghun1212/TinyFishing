@@ -28,6 +28,12 @@ namespace TinyFishing.Fishing
 
         private Rigidbody body;
         private bool hasSplashed;
+
+        // True once the bob's OnTriggerEnter has detected it touching the water surface
+        // for this cast; false while it's still in the air on its cast arc. Reeling is
+        // gated on this so an early tap before splashdown is simply ignored instead of
+        // spooking a fish that hasn't even started approaching yet.
+        public bool IsInWater { get; private set; }
         private Vector3 restPosition;
         private Quaternion restRotation;
 
@@ -68,6 +74,7 @@ namespace TinyFishing.Fishing
         {
             body.isKinematic = false;
             hasSplashed = false;
+            IsInWater = false;
             PlaySfx(throwClip);
 
             var flatDirection = new Vector3(castDirection.x, 0f, castDirection.z);
@@ -196,6 +203,7 @@ namespace TinyFishing.Fishing
             }
 
             hasSplashed = true;
+            IsInWater = true;
             PlaySfx(splashClip);
         }
 

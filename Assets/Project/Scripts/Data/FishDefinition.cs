@@ -18,6 +18,9 @@ namespace NanFishing.Data
         [SerializeField] private string displayName = "Fish";
         [SerializeField] private FishRarity rarity;
         [SerializeField, Min(1)] private int baseScore = 100;
+        // Multiplies how often this fish flips to a new (potentially misaligned/"red") direction:
+        // effective direction-change interval = DirectionChangeInterval / Resistance. Higher resistance
+        // means the fish jerks the line around more often, giving the player less time to stay aligned.
         [SerializeField, Range(0.2f, 2f)] private float resistance = 1f;
         [SerializeField, Min(1)] private int maxHealth = 100;
         [SerializeField, Range(0f, 1f)] private float progressDecayRate = 0.05f;
@@ -30,6 +33,8 @@ namespace NanFishing.Data
         public string DisplayName => displayName;
         public FishRarity Rarity => rarity;
         public int BaseScore => baseScore;
+        // Scales how often the fish changes direction (see FishDriftDriver) - higher resistance
+        // means more frequent direction flips, giving less time spent safely aligned.
         public float Resistance => resistance;
         public int MaxHealth => maxHealth;
         // Progress (0..1 of the reel bar) lost per second while this fish is being reeled in.
