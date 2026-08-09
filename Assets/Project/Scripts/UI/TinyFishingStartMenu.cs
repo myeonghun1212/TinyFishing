@@ -7,72 +7,90 @@ using UnityEngine.UI;
 namespace TinyFishing.UI
 {
     /// <summary>
-    /// Start-menu presenter for choosing an input route and entering the fishing scene.
-    /// Gyro mode starts on a physical swing; touch mode exposes a regular start button.
+    /// Start-menu presenter. Game mode is selected on the main panel, while the shared
+    /// Gyro/Touch input preference is edited from a separate settings panel.
     /// </summary>
     public sealed class TinyFishingStartMenu : MonoBehaviour
     {
-        [Header("Scene")]
-        [SerializeField] private string gameplaySceneName = "Pond FPV";
+        [Header("Scenes")]
+        [SerializeField] private string infiniteGameplaySceneName = "Pond Casual";
+        [SerializeField] private string timeLimitedGameplaySceneName = "Pond Timed";
 
-        [Header("Controls")]
+        [Header("Panels")]
+        [SerializeField] private GameObject mainPanel;
+        [SerializeField] private GameObject settingsPanel;
+
+        [Header("Main Menu")]
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private Button infiniteModeButton;
+        [SerializeField] private Button timeLimitedModeButton;
+        [SerializeField] private Button startButton;
+        [SerializeField] private Text selectedGameModeText;
+        [SerializeField] private Text gameModeStatusText;
+        [SerializeField] private Image infiniteModeButtonImage;
+        [SerializeField] private Image timeLimitedModeButtonImage;
+
+        [Header("Input Settings")]
+        [SerializeField] private Button closeSettingsButton;
         [SerializeField] private Button gyroButton;
         [SerializeField] private Button touchButton;
-        [SerializeField] private Button startButton;
         [SerializeField] private Button recalibrateButton;
-
-        [Header("Presentation")]
         [SerializeField] private GameObject gyroPanel;
-        [SerializeField] private Text selectedModeText;
+        [SerializeField] private Text selectedInputText;
         [SerializeField] private Text sensorStatusText;
         [SerializeField] private Image gyroButtonImage;
         [SerializeField] private Image touchButtonImage;
+
+        [Header("Colors")]
         [SerializeField] private Color selectedColor = new(0.16f, 0.62f, 0.82f, 1f);
         [SerializeField] private Color unselectedColor = new(0.16f, 0.21f, 0.27f, 1f);
-
-        [Header("Text (editable)")]
-        [Tooltip("Shown in sensorStatusText once the gyro is calibrated and armed.")]
-        [SerializeField] private string gyroReadyMessage = "자이로 준비 완료 - 흔들어서 시작하세요";
-        [Tooltip("Shown in sensorStatusText when motion sensors aren't available on this device.")]
-        [SerializeField] private string sensorUnavailableMessage = "동작 센서를 사용할 수 없습니다\n(에디터: Enter 키를 눌러 테스트)";
-        [Tooltip("Shown in selectedModeText when Gyro mode is selected.")]
-        [SerializeField] private string gyroModeLabel = "자이로";
-        [Tooltip("Shown in selectedModeText when Touch Screen mode is selected.")]
-        [SerializeField] private string touchModeLabel = "터치스크린";
+        [SerializeField] private Color comingSoonColor = new(0.39f, 0.34f, 0.18f, 1f);
 
         [Header("Swing Detection")]
         [SerializeField, Min(0.1f)] private float swingThreshold = 4.72f;
         [SerializeField, Range(0.01f, 1f)] private float sensorSmoothing = 0.25f;
         [SerializeField, Min(0f)] private float armingDelay = 0.75f;
 
-        private TinyFishingInputState selectedState;
+        private TinyFishingInputState selectedInputState;
+        private TinyFishingGameMode selectedGameMode;
         private Vector3 filteredAcceleration = Vector3.up;
         private Vector3 previousFilteredAcceleration = Vector3.up;
         private float armedAt;
         private bool isLoading;
+        private bool settingsOpen;
         private bool sensorsReady;
 
         private void Awake()
         {
+            settingsButton?.onClick.AddListener(OpenSettings);
+            closeSettingsButton?.onClick.AddListener(CloseSettings);
+            infiniteModeButton?.onClick.AddListener(SelectInfiniteMode);
+            timeLimitedModeButton?.onClick.AddListener(SelectTimeLimitedMode);
             gyroButton?.onClick.AddListener(SelectGyro);
             touchButton?.onClick.AddListener(SelectTouchScreen);
-            startButton?.onClick.AddListener(StartGame);
+            startButton?.onClick.AddListener(StartSelectedMode);
             recalibrateButton?.onClick.AddListener(RecalibrateGyro);
 
-            ApplySelection(TinyFishingInputPreferences.Load());
+            ApplyInputSelection(TinyFishingInputPreferences.Load());
+            ApplyGameModeSelection(TinyFishingGameModePreferences.Load());
+            ShowMainPanel();
         }
 
         private void OnDestroy()
         {
+            settingsButton?.onClick.RemoveListener(OpenSettings);
+            closeSettingsButton?.onClick.RemoveListener(CloseSettings);
+            infiniteModeButton?.onClick.RemoveListener(SelectInfiniteMode);
+            timeLimitedModeButton?.onClick.RemoveListener(SelectTimeLimitedMode);
             gyroButton?.onClick.RemoveListener(SelectGyro);
             touchButton?.onClick.RemoveListener(SelectTouchScreen);
-            startButton?.onClick.RemoveListener(StartGame);
+            startButton?.onClick.RemoveListener(StartSelectedMode);
             recalibrateButton?.onClick.RemoveListener(RecalibrateGyro);
         }
 
         private void Update()
         {
-            if (isLoading || selectedState != TinyFishingInputState.Gyro)
+            if (isLoading || settingsOpen || selectedInputState != TinyFishingInputState.Gyro)
             {
                 return;
             }
@@ -80,7 +98,7 @@ namespace TinyFishing.UI
 #if UNITY_EDITOR || UNITY_STANDALONE
             if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
             {
-                StartGame();
+                StartSelectedMode();
                 return;
             }
 #endif
@@ -100,18 +118,44 @@ namespace TinyFishing.UI
             var jerk = (filteredAcceleration - previousFilteredAcceleration).magnitude / deltaTime;
             if (jerk >= swingThreshold)
             {
-                StartGame();
+                StartSelectedMode();
             }
+        }
+
+        public void OpenSettings()
+        {
+            settingsOpen = true;
+            mainPanel?.SetActive(false);
+            settingsPanel?.SetActive(true);
+        }
+
+        public void CloseSettings()
+        {
+            ShowMainPanel();
+            if (selectedInputState == TinyFishingInputState.Gyro)
+            {
+                RecalibrateGyro();
+            }
+        }
+
+        public void SelectInfiniteMode()
+        {
+            ApplyGameModeSelection(TinyFishingGameMode.Infinite);
+        }
+
+        public void SelectTimeLimitedMode()
+        {
+            ApplyGameModeSelection(TinyFishingGameMode.TimeLimited);
         }
 
         public void SelectGyro()
         {
-            ApplySelection(TinyFishingInputState.Gyro);
+            ApplyInputSelection(TinyFishingInputState.Gyro);
         }
 
         public void SelectTouchScreen()
         {
-            ApplySelection(TinyFishingInputState.TouchScreen);
+            ApplyInputSelection(TinyFishingInputState.TouchScreen);
         }
 
         public void RecalibrateGyro()
@@ -126,26 +170,68 @@ namespace TinyFishing.UI
             if (sensorStatusText != null)
             {
                 sensorStatusText.text = sensorsReady
-                    ? gyroReadyMessage
-                    : sensorUnavailableMessage;
+                    ? "Gyro ready - swing the phone to start"
+                    : "Motion sensor unavailable\n(Editor: press Enter to test)";
             }
         }
 
-        public void StartGame()
+        public void StartSelectedMode()
         {
             if (isLoading)
             {
                 return;
             }
 
+            TinyFishingInputPreferences.Save(selectedInputState);
+            TinyFishingGameModePreferences.Save(selectedGameMode);
+
+            if (selectedGameMode == TinyFishingGameMode.TimeLimited)
+            {
+                if (gameModeStatusText != null)
+                {
+                    gameModeStatusText.text = "TIME LIMITED mode saved - coming soon";
+                }
+
+                Debug.Log("Time Limited mode was selected and saved. Scene loading is not implemented yet.");
+
+                // TODO: Enable this after the time-limited gameplay scene is implemented.
+                // SceneManager.LoadScene(timeLimitedGameplaySceneName);
+                return;
+            }
+
             isLoading = true;
-            TinyFishingInputPreferences.Save(selectedState);
-            SceneManager.LoadScene(gameplaySceneName);
+            SceneManager.LoadScene(infiniteGameplaySceneName);
         }
 
-        private void ApplySelection(TinyFishingInputState state)
+        private void ApplyGameModeSelection(TinyFishingGameMode mode)
         {
-            selectedState = state;
+            selectedGameMode = mode;
+            TinyFishingGameModePreferences.Save(mode);
+
+            var infiniteSelected = mode == TinyFishingGameMode.Infinite;
+            if (selectedGameModeText != null)
+            {
+                selectedGameModeText.text = infiniteSelected ? "INFINITE MODE" : "TIME LIMITED MODE";
+            }
+            if (gameModeStatusText != null)
+            {
+                gameModeStatusText.text = infiniteSelected
+                    ? "Play without a time limit"
+                    : "Coming soon - your selection is saved";
+            }
+            if (infiniteModeButtonImage != null)
+            {
+                infiniteModeButtonImage.color = infiniteSelected ? selectedColor : unselectedColor;
+            }
+            if (timeLimitedModeButtonImage != null)
+            {
+                timeLimitedModeButtonImage.color = infiniteSelected ? comingSoonColor : selectedColor;
+            }
+        }
+
+        private void ApplyInputSelection(TinyFishingInputState state)
+        {
+            selectedInputState = state;
             TinyFishingInputPreferences.Save(state);
 
             var gyroSelected = state == TinyFishingInputState.Gyro;
@@ -155,9 +241,9 @@ namespace TinyFishing.UI
             }
             gyroPanel?.SetActive(gyroSelected);
 
-            if (selectedModeText != null)
+            if (selectedInputText != null)
             {
-                selectedModeText.text = gyroSelected ? gyroModeLabel : touchModeLabel;
+                selectedInputText.text = gyroSelected ? "GYRO" : "TOUCH SCREEN";
             }
             if (gyroButtonImage != null)
             {
@@ -176,6 +262,13 @@ namespace TinyFishing.UI
             {
                 sensorsReady = false;
             }
+        }
+
+        private void ShowMainPanel()
+        {
+            settingsOpen = false;
+            settingsPanel?.SetActive(false);
+            mainPanel?.SetActive(true);
         }
 
         private static bool EnableMotionSensors()
@@ -200,21 +293,39 @@ namespace TinyFishing.UI
 
 #if UNITY_EDITOR
         public void Configure(
+            GameObject main,
+            GameObject settings,
+            Button openSettings,
+            Button closeSettings,
+            Button infinite,
+            Button timeLimited,
+            Button start,
+            Text selectedGameMode,
+            Text gameModeStatus,
             Button gyro,
             Button touch,
-            Button start,
             Button recalibrate,
             GameObject gyroInstructions,
-            Text modeLabel,
-            Text statusLabel)
+            Text selectedInput,
+            Text sensorStatus)
         {
+            mainPanel = main;
+            settingsPanel = settings;
+            settingsButton = openSettings;
+            closeSettingsButton = closeSettings;
+            infiniteModeButton = infinite;
+            timeLimitedModeButton = timeLimited;
+            startButton = start;
+            selectedGameModeText = selectedGameMode;
+            gameModeStatusText = gameModeStatus;
+            infiniteModeButtonImage = infinite != null ? infinite.image : null;
+            timeLimitedModeButtonImage = timeLimited != null ? timeLimited.image : null;
             gyroButton = gyro;
             touchButton = touch;
-            startButton = start;
             recalibrateButton = recalibrate;
             gyroPanel = gyroInstructions;
-            selectedModeText = modeLabel;
-            sensorStatusText = statusLabel;
+            selectedInputText = selectedInput;
+            sensorStatusText = sensorStatus;
             gyroButtonImage = gyro != null ? gyro.image : null;
             touchButtonImage = touch != null ? touch.image : null;
         }

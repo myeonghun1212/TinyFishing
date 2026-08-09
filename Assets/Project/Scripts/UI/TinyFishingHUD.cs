@@ -53,7 +53,7 @@ namespace TinyFishing.UI
         [Tooltip("Renderer on the 3D rope/line mesh. Its material is tinted from normal toward ropeEscapeColor while the fish sits at 0% progress during the escape grace period.")]
         [SerializeField] private Renderer[] ropeRenderers;
         [SerializeField] private Color ropeEscapeColor = new Color(0.92f, 0.20f, 0.20f);
-[SerializeField] private MonoBehaviour inputBehaviour; // must implement ITinyFishingInput; used to recalibrate on round reset
+        [SerializeField] private MonoBehaviour inputBehaviour; // must implement ITinyFishingInput; used to clear aim on round reset
 
         [Header("Feedback")]
         [SerializeField] private TextMeshProUGUI instructionText;
@@ -432,10 +432,8 @@ private void ResetRig()
         {
             // The input service now holds the player's last drag position indefinitely
             // (see TinyFishingInputService) instead of snapping back to zero on release.
-            // Recalibrating here clears that held value so a fresh round starts with the
-            // rod upright instead of the snap below being immediately fought by LateUpdate
-            // pulling it back toward a stale drag angle.
-            rodInput?.Recalibrate();
+            // Clear that held value for the next round, but preserve the gyro baseline.
+            rodInput?.ResetAim();
             rodController?.ResetRod();
 
             if (directionFlipRoutine != null)

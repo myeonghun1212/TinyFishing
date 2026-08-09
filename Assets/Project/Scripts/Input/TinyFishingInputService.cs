@@ -99,10 +99,19 @@ namespace TinyFishing.Input
                 editorBaselineAttitude = attitude;
 #endif
             }
+
+            ResetAim();
+        }
+
+        public void ResetAim()
+        {
             keyboardDirection = 0f;
             keyboardVertical = 0f;
-            isDragging = false;
-            pointerDown = false;
+            dragHorizontal = 0f;
+            dragVertical = 0f;
+            directionAtPressStart = 0f;
+            verticalAtPressStart = 0f;
+            ResetPointerState();
             Direction = 0f;
             VerticalDirection = 0f;
             IsReady = true;

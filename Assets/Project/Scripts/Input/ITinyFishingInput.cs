@@ -40,5 +40,8 @@ namespace TinyFishing.Input
 
         // Recenters the tilt baseline to the phone's current resting position.
         void Recalibrate();
+
+        // Clears transient aim/pointer input without changing the gyro tilt baseline.
+        void ResetAim();
     }
 }

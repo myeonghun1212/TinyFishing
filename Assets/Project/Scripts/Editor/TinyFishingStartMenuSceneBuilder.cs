@@ -14,7 +14,7 @@ namespace TinyFishing.Editor
     public static class TinyFishingStartMenuSceneBuilder
     {
         private const string MenuScenePath = "Assets/Project/Scenes/Pond Start Menu.unity";
-        private const string GameplayScenePath = "Assets/Project/Scenes/Pond FPV.unity";
+        private const string GameplayScenePath = "Assets/Project/Scenes/Pond Casual.unity";
 
         [MenuItem("Tools/Tiny Fishing/Build Start Menu")]
         public static void Build()
@@ -35,7 +35,7 @@ namespace TinyFishing.Editor
             canvas.sortingOrder = 100;
             var scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.referenceResolution = new Vector2(1080f, 1920f);
             scaler.matchWidthOrHeight = 0.5f;
             canvasObject.AddComponent<GraphicRaycaster>();
 
@@ -46,42 +46,84 @@ namespace TinyFishing.Editor
             var card = CreatePanel("MenuCard", shade.transform,
                 new Color(0.035f, 0.09f, 0.12f, 0.96f));
             SetAnchoredRect(card.rectTransform, new Vector2(0.5f, 0.5f),
-                new Vector2(820f, 780f), Vector2.zero);
+                new Vector2(900f, 1240f), Vector2.zero);
 
-            CreateText("Title", card.transform, "TINY FISHING", 64, FontStyle.Bold,
-                new Vector2(0f, 276f), new Vector2(700f, 90f), new Color(0.87f, 0.97f, 1f));
-            CreateText("Subtitle", card.transform, "CHOOSE YOUR CONTROL", 25, FontStyle.Normal,
-                new Vector2(0f, 211f), new Vector2(700f, 50f), new Color(0.48f, 0.76f, 0.83f));
+            var mainPanel = CreateObject("MainPanel", card.transform);
+            Stretch(mainPanel.GetComponent<RectTransform>());
+            CreateText("Title", mainPanel.transform, "TINY FISHING", 68, FontStyle.Bold,
+                new Vector2(0f, 470f), new Vector2(760f, 100f), new Color(0.87f, 0.97f, 1f));
+            CreateText("Subtitle", mainPanel.transform, "CHOOSE A GAME MODE", 28, FontStyle.Normal,
+                new Vector2(0f, 390f), new Vector2(760f, 55f), new Color(0.48f, 0.76f, 0.83f));
 
-            var gyro = CreateButton("GyroButton", card.transform, "GYRO",
-                new Vector2(-188f, 125f), new Vector2(330f, 92f));
-            var touch = CreateButton("TouchButton", card.transform, "TOUCH SCREEN",
-                new Vector2(188f, 125f), new Vector2(330f, 92f));
+            var settings = CreateButton("SettingsButton", mainPanel.transform, "SETTINGS",
+                new Vector2(282f, 525f), new Vector2(230f, 68f), 22);
+            var infinite = CreateButton("InfiniteModeButton", mainPanel.transform,
+                "INFINITE MODE\nNo time limit", new Vector2(0f, 235f), new Vector2(700f, 170f), 30);
+            var timeLimited = CreateButton("TimeLimitedModeButton", mainPanel.transform,
+                "TIME LIMITED\nCOMING SOON", new Vector2(0f, 25f), new Vector2(700f, 170f), 30);
 
-            var selectedMode = CreateText("SelectedMode", card.transform, "GYRO", 31,
-                FontStyle.Bold, new Vector2(0f, 48f), new Vector2(700f, 55f), Color.white);
+            var selectedGameMode = CreateText("SelectedGameMode", mainPanel.transform,
+                "INFINITE MODE", 34, FontStyle.Bold, new Vector2(0f, -125f),
+                new Vector2(760f, 60f), Color.white);
+            var gameModeStatus = CreateText("GameModeStatus", mainPanel.transform,
+                "Play without a time limit", 23, FontStyle.Normal, new Vector2(0f, -185f),
+                new Vector2(760f, 75f), new Color(0.56f, 0.77f, 0.82f));
+            var start = CreateButton("StartButton", mainPanel.transform, "START GAME",
+                new Vector2(0f, -320f), new Vector2(470f, 105f), 30);
+            CreateText("MainFooter", mainPanel.transform,
+                "Gyro: swing to start  |  Touch: tap Start Game", 20, FontStyle.Normal,
+                new Vector2(0f, -505f), new Vector2(780f, 65f), new Color(0.45f, 0.61f, 0.65f));
 
-            var gyroPanel = CreateObject("GyroPanel", card.transform);
-            var gyroPanelRect = gyroPanel.GetComponent<RectTransform>();
-            SetAnchoredRect(gyroPanelRect, new Vector2(0.5f, 0.5f),
-                new Vector2(700f, 245f), new Vector2(0f, -80f));
+            var settingsPanel = CreateObject("SettingsPanel", card.transform);
+            Stretch(settingsPanel.GetComponent<RectTransform>());
+            CreateText("SettingsTitle", settingsPanel.transform, "INPUT SETTINGS", 58, FontStyle.Bold,
+                new Vector2(0f, 465f), new Vector2(760f, 90f), new Color(0.87f, 0.97f, 1f));
+            CreateText("SettingsSubtitle", settingsPanel.transform,
+                "This input setting is shared by every game mode", 23, FontStyle.Normal,
+                new Vector2(0f, 390f), new Vector2(760f, 70f), new Color(0.48f, 0.76f, 0.83f));
+
+            var gyro = CreateButton("GyroButton", settingsPanel.transform, "GYRO",
+                new Vector2(-190f, 270f), new Vector2(340f, 100f), 27);
+            var touch = CreateButton("TouchButton", settingsPanel.transform, "TOUCH SCREEN",
+                new Vector2(190f, 270f), new Vector2(340f, 100f), 27);
+            var selectedInput = CreateText("SelectedInput", settingsPanel.transform, "GYRO", 34,
+                FontStyle.Bold, new Vector2(0f, 170f), new Vector2(760f, 60f), Color.white);
+
+            var gyroPanel = CreateObject("GyroPanel", settingsPanel.transform);
+            SetAnchoredRect(gyroPanel.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f),
+                new Vector2(780f, 350f), new Vector2(0f, -35f));
             CreateText("SwingHint", gyroPanel.transform,
-                "Hold the phone naturally, then swing to start", 25, FontStyle.Normal,
-                new Vector2(0f, 65f), new Vector2(660f, 55f), new Color(0.87f, 0.94f, 0.96f));
+                "Hold the phone naturally, then initialize the gyro", 24, FontStyle.Normal,
+                new Vector2(0f, 105f), new Vector2(740f, 70f), new Color(0.87f, 0.94f, 0.96f));
             var sensorStatus = CreateText("SensorStatus", gyroPanel.transform,
-                "Preparing motion sensor...", 20, FontStyle.Normal,
-                new Vector2(0f, 10f), new Vector2(660f, 65f), new Color(0.48f, 0.76f, 0.83f));
+                "Preparing motion sensor...", 21, FontStyle.Normal,
+                new Vector2(0f, 25f), new Vector2(740f, 75f), new Color(0.48f, 0.76f, 0.83f));
             var recalibrate = CreateButton("RecalibrateButton", gyroPanel.transform,
-                "INITIALIZE GYRO", new Vector2(0f, -73f), new Vector2(360f, 78f));
+                "INITIALIZE GYRO", new Vector2(0f, -90f), new Vector2(410f, 90f), 25);
 
-            var start = CreateButton("StartButton", card.transform, "START GAME",
-                new Vector2(0f, -172f), new Vector2(430f, 96f));
-            CreateText("Footer", card.transform,
-                "Gyro: swing  |  Touch: tap Start Game", 19, FontStyle.Normal,
-                new Vector2(0f, -320f), new Vector2(700f, 45f), new Color(0.45f, 0.61f, 0.65f));
+            var closeSettings = CreateButton("CloseSettingsButton", settingsPanel.transform,
+                "BACK", new Vector2(0f, -480f), new Vector2(360f, 90f), 27);
+            CreateText("SettingsFooter", settingsPanel.transform,
+                "Your choice is saved automatically", 20, FontStyle.Normal,
+                new Vector2(0f, -555f), new Vector2(760f, 50f), new Color(0.45f, 0.61f, 0.65f));
 
-            controller.Configure(gyro, touch, start, recalibrate, gyroPanel,
-                selectedMode, sensorStatus);
+            controller.Configure(
+                mainPanel,
+                settingsPanel,
+                settings,
+                closeSettings,
+                infinite,
+                timeLimited,
+                start,
+                selectedGameMode,
+                gameModeStatus,
+                gyro,
+                touch,
+                recalibrate,
+                gyroPanel,
+                selectedInput,
+                sensorStatus);
+            settingsPanel.SetActive(false);
 
             EnsureEventSystem();
             UpdateBuildSettings();
@@ -117,7 +159,9 @@ namespace TinyFishing.Editor
         private static void UpdateBuildSettings()
         {
             var remaining = EditorBuildSettings.scenes
-                .Where(scene => scene.path != MenuScenePath && scene.path != GameplayScenePath)
+                .Where(scene => scene.path != MenuScenePath
+                    && scene.path != GameplayScenePath
+                    && scene.path != "Assets/Project/Scenes/Pond FPV.unity")
                 .ToList();
             remaining.Insert(0, new EditorBuildSettingsScene(GameplayScenePath, true));
             remaining.Insert(0, new EditorBuildSettingsScene(MenuScenePath, true));
@@ -157,7 +201,7 @@ namespace TinyFishing.Editor
         }
 
         private static Button CreateButton(string name, Transform parent, string label,
-            Vector2 position, Vector2 dimensions)
+            Vector2 position, Vector2 dimensions, int fontSize)
         {
             var buttonObject = CreateObject(name, parent);
             var image = buttonObject.AddComponent<Image>();
@@ -169,7 +213,7 @@ namespace TinyFishing.Editor
             colors.pressedColor = new Color(0.10f, 0.48f, 0.66f, 1f);
             button.colors = colors;
             SetAnchoredRect(image.rectTransform, new Vector2(0.5f, 0.5f), dimensions, position);
-            CreateText("Label", buttonObject.transform, label, 25, FontStyle.Bold,
+            CreateText("Label", buttonObject.transform, label, fontSize, FontStyle.Bold,
                 Vector2.zero, dimensions, Color.white);
             return button;
         }
