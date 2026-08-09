@@ -34,6 +34,8 @@ namespace TinyFishing.UI
         [SerializeField] private Sprite fishDangerSprite;
         [SerializeField] private Color alignedColor = new Color(0.30f, 0.85f, 0.35f);
         [SerializeField] private Color misalignedColor = new Color(0.92f, 0.20f, 0.20f);
+        [SerializeField] private AudioSource splashAudioSource;
+        [SerializeField] private AudioClip splashClip;
 
         [Header("Progress")]
         [SerializeField] private Image progressFill;
@@ -213,6 +215,7 @@ private void HandleReelingUpdated(float playerDirection, float fishDirection, bo
                 lastAligned = aligned;
                 float currentYSign = Mathf.Sign(fishMarker.localScale.y == 0f ? 1f : fishMarker.localScale.y);
                 StartFlip(ref stateFlipRoutine, xAxis: false, targetSign: -currentYSign);
+                PlaySplashSfx();
             }
 
             if (fishMarkerImage != null)
@@ -221,6 +224,20 @@ private void HandleReelingUpdated(float playerDirection, float fishDirection, bo
             }
 
             SetProgress(progress);
+        }
+
+        private void PlaySplashSfx()
+        {
+            if (splashAudioSource == null || splashClip == null)
+            {
+                return;
+            }
+
+            // Stop-and-restart so rapid alignment flips retrigger cleanly instead of
+            // layering multiple overlapping splashes on top of each other.
+            splashAudioSource.Stop();
+            splashAudioSource.clip = splashClip;
+            splashAudioSource.Play();
         }
 
         private void StartFlip(ref Coroutine routine, bool xAxis, float targetSign)

@@ -25,6 +25,14 @@ namespace TinyFishing.Core
         [SerializeField] private FishDefinition[] fishCatalog;
         [Tooltip("Optional: drives which fish types are in rotation and each one's relative catch chance. When assigned, this takes priority over fishCatalog's built-in rarity odds.")]
         [SerializeField] private FishPool fishPool;
+        [SerializeField] private FishingBobController bobController;
+
+        [Header("Audio")]
+        [SerializeField] private AudioSource audioSource;
+        [SerializeField] private AudioClip goodReelClip;
+        [SerializeField] private AudioClip badReelClip;
+        [SerializeField] private AudioSource catchAudioSource;
+        [SerializeField] private AudioClip successfulCatchClip;
 
         private ITinyFishingInput input;
         private FishDriftDriver fish;
@@ -111,6 +119,10 @@ namespace TinyFishing.Core
 private IEnumerator CastAndBiteRoutine()
         {
             SetState(TinyFishingState.WaitingForBite);
+            if (bobController != null)
+            {
+                bobController.Launch();
+            }
             var delay = UnityEngine.Random.Range(config.biteDelayRange.x, config.biteDelayRange.y);
             yield return new WaitForSeconds(delay);
 
@@ -136,9 +148,44 @@ private void HandleReelTap()
                 return;
             }
 
-            reelModel.ApplyTap(input.Direction, fish.Direction, input.VerticalDirection);
+            var goodTap = reelModel.ApplyTap(input.Direction, fish.Direction, input.VerticalDirection);
+            PlayReelTapSfx(goodTap);
             ReelingUpdated?.Invoke(input.Direction, fish.Direction,
                 reelModel.IsAligned(input.Direction, fish.Direction), reelModel.Progress);
+        }
+
+        private void PlayReelTapSfx(bool goodTap)
+        {
+            if (audioSource == null)
+            {
+                return;
+            }
+
+            var clip = goodTap ? goodReelClip : badReelClip;
+            if (clip == null)
+            {
+                return;
+            }
+
+            // Stop-and-restart on a single AudioSource so good/bad tap sfx never overlap
+            // each other or themselves on rapid taps - only the latest tap's sound plays.
+            audioSource.Stop();
+            audioSource.clip = clip;
+            audioSource.Play();
+        }
+
+private void PlayCatchSfx()
+        {
+            if (catchAudioSource == null || successfulCatchClip == null)
+            {
+                return;
+            }
+
+            // Own AudioSource, separate from the tap source, so the catch sound isn't
+            // cut off by (or cuts off) the good/bad tap sfx stop-and-restart logic.
+            catchAudioSource.Stop();
+            catchAudioSource.clip = successfulCatchClip;
+            catchAudioSource.Play();
         }
 
 private void ResolveRound(bool caught)
@@ -146,6 +193,7 @@ private void ResolveRound(bool caught)
             SetState(TinyFishingState.RoundResult);
             if (caught)
             {
+                PlayCatchSfx();
                 score += currentFish != null ? currentFish.BaseScore : config.fallbackScorePerCatch;
                 fishCaught += 1;
                 if (currentFish != null)
@@ -202,6 +250,10 @@ private FishDefinition SelectFish()
         private void SetState(TinyFishingState next)
         {
             State = next;
+            if (next == TinyFishingState.ReadyToCast && bobController != null)
+            {
+                bobController.ResetToRest();
+            }
             StateChanged?.Invoke(next);
         }
     }

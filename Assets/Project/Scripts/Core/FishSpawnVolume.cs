@@ -30,8 +30,8 @@ namespace TinyFishing.Core
 
         private readonly List<GameObject> spawned = new List<GameObject>();
 
-        private Vector3 Center => transform.position;
-        private Vector3 HalfExtents => size * 0.5f;
+        public Vector3 Center => transform.position;
+        public Vector3 HalfExtents => size * 0.5f;
 
         private void Start()
         {
