@@ -15,9 +15,10 @@ MonoBehaviour:
   fishId: bluegill
   displayName: Bluegill
   rarity: 0
-  baseScore: 50
+  baseScore: 150
   resistance: 0.3
-  maxHealth: 500
+  maxHealth: 350
+  progressDecayRate: 0.05
   moveSpeed: 0.3
   directionChangeInterval: 2.5
   color: {r: 0.55, g: 0.75, b: 0.9, a: 1}

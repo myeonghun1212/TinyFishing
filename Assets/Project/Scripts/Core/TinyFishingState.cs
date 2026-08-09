@@ -7,6 +7,7 @@ namespace TinyFishing.Core
         Approaching,
         Biting,
         Reeling,
-        RoundResult
+        RoundResult,
+        GameOver
     }
 }

@@ -16,8 +16,9 @@ MonoBehaviour:
   displayName: Trout
   rarity: 3
   baseScore: 350
-  resistance: 1
+  resistance: 0.7
   maxHealth: 200
+  progressDecayRate: 0.05
   moveSpeed: 1.54
   directionChangeInterval: 1.21
   color: {r: 0.75, g: 0.55, b: 0.5, a: 1}

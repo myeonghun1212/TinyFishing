@@ -1,4 +1,5 @@
 using System;
+using TinyFishing.Data;
 
 namespace TinyFishing.Input
 {
@@ -35,6 +36,10 @@ namespace TinyFishing.Input
         // The active physical-input route. Lobby/settings UI can switch this later without
         // needing to know how the service handles the individual devices.
         TinyFishingInputState InputState { get; }
+
+        // Applies the config selected for the active game mode. This keeps gyro/touch
+        // sensitivity and casting thresholds in sync with the fishing rules.
+        void Configure(TinyFishingConfig fishingConfig);
 
         void SetInputState(TinyFishingInputState state);
 

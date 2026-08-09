@@ -1,13 +1,7 @@
 using UnityEngine;
 
-namespace TinyFishing.UI
+namespace TinyFishing.Core
 {
-    public enum TinyFishingGameMode
-    {
-        Infinite,
-        TimeLimited
-    }
-
     /// <summary>
     /// Stores the selected game mode independently from the shared input preference.
     /// </summary>

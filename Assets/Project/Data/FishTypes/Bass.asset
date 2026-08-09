@@ -16,8 +16,8 @@ MonoBehaviour:
   displayName: Bass
   rarity: 1
   baseScore: 100
-  resistance: 0.579
-  maxHealth: 600
+  resistance: 0.2
+  maxHealth: 350
   progressDecayRate: 0.106
   moveSpeed: 0.92
   directionChangeInterval: 1.01

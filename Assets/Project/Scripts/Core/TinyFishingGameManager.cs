@@ -6,6 +6,7 @@ using TinyFishing.Fishing;
 using TinyFishing.Input;
 using UnityEngine;
 using NanFishing.Data;
+using UnityEngine.Serialization;
 
 namespace TinyFishing.Core
 {
@@ -19,14 +20,15 @@ namespace TinyFishing.Core
     //   Reeling / RoundResult: unchanged tap-to-align minigame, then back to ReadyToCast.
     public sealed class TinyFishingGameManager : MonoBehaviour
     {
-        private const string BestScoreKey = "TinyFishing.BestScore";
-
         public event Action<TinyFishingState> StateChanged;
         public event Action<int, int, int> ScoreChanged; // score, fishCaught, bestScore
         public event Action<float, float, bool, float> ReelingUpdated; // playerDir, fishDir, aligned, progress
         public event Action<bool, FishDefinition> RoundResolved; // caught?, the fish that was hooked (null if none)
 
-        [SerializeField] private TinyFishingConfig config;
+        [Header("Game Mode Configs")]
+        [FormerlySerializedAs("config")]
+        [SerializeField] private TinyFishingConfig infiniteConfig;
+        [SerializeField] private TinyFishingConfig timeLimitedConfig;
         [SerializeField] private MonoBehaviour inputBehaviour; // must implement ITinyFishingInput
         [SerializeField] private FishDefinition[] fishCatalog;
         [Tooltip("Optional: drives which fish types are in rotation and each one's relative catch chance. When assigned, this takes priority over fishCatalog's built-in rarity odds.")]
@@ -56,10 +58,17 @@ namespace TinyFishing.Core
         private int score;
         private int fishCaught;
         private int bestScore;
+        private bool sessionActive = true;
+        private TinyFishingConfig config;
 
         public TinyFishingState State { get; private set; } = TinyFishingState.ReadyToCast;
         public TinyFishingConfig Config => config;
         public FishDefinition CurrentFish => currentFish;
+        public TinyFishingGameMode GameMode { get; private set; }
+        public int Score => score;
+        public int FishCaught => fishCaught;
+        public int BestScore => bestScore;
+        public bool IsSessionActive => sessionActive;
 
         private void Awake()
         {
@@ -71,9 +80,28 @@ namespace TinyFishing.Core
                 return;
             }
 
+            GameMode = TinyFishingGameModePreferences.Load();
+            config = GameMode == TinyFishingGameMode.TimeLimited
+                ? timeLimitedConfig
+                : infiniteConfig;
+
+            if (config == null)
+            {
+                config = infiniteConfig != null ? infiniteConfig : timeLimitedConfig;
+                Debug.LogWarning($"TinyFishingGameManager: no config is assigned for {GameMode}; using the other mode's config as a fallback.");
+            }
+
+            if (config == null)
+            {
+                Debug.LogError("TinyFishingGameManager: both game mode configs are missing.");
+                enabled = false;
+                return;
+            }
+
+            input.Configure(config);
             fish = new FishDriftDriver(config);
             reelModel = new ReelProgressModel(config);
-            bestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+            bestScore = PlayerPrefs.GetInt(TinyFishingScoreKeys.For(GameMode), 0);
         }
 
         private void OnEnable()
@@ -105,7 +133,7 @@ namespace TinyFishing.Core
 
         private void Update()
         {
-            if (State != TinyFishingState.Reeling)
+            if (!sessionActive || State != TinyFishingState.Reeling)
             {
                 return;
             }
@@ -132,7 +160,7 @@ namespace TinyFishing.Core
 
         private void HandleCastPerformed()
         {
-            if (State != TinyFishingState.ReadyToCast)
+            if (!sessionActive || State != TinyFishingState.ReadyToCast)
             {
                 return;
             }
@@ -206,6 +234,11 @@ namespace TinyFishing.Core
 
         private void HandleReelTap()
         {
+            if (!sessionActive)
+            {
+                return;
+            }
+
             switch (State)
             {
                 case TinyFishingState.WaitingForBite:
@@ -357,7 +390,8 @@ namespace TinyFishing.Core
                 if (score > bestScore)
                 {
                     bestScore = score;
-                    PlayerPrefs.SetInt(BestScoreKey, bestScore);
+                    PlayerPrefs.SetInt(TinyFishingScoreKeys.For(GameMode), bestScore);
+                    PlayerPrefs.Save();
                 }
                 ScoreChanged?.Invoke(score, fishCaught, bestScore);
             }
@@ -396,7 +430,38 @@ namespace TinyFishing.Core
         private IEnumerator ReturnToCastingRoutine()
         {
             yield return new WaitForSeconds(1.1f);
-            SetState(TinyFishingState.ReadyToCast);
+            if (sessionActive)
+            {
+                SetState(TinyFishingState.ReadyToCast);
+            }
+        }
+
+        /// <summary>
+        /// Stops the shared fishing loop without changing scenes. Mode-specific controllers
+        /// can then present results and decide where the player goes next.
+        /// </summary>
+        public void EndSession()
+        {
+            if (!sessionActive)
+            {
+                return;
+            }
+
+            sessionActive = false;
+            StopAllCoroutines();
+            activeRoutine = null;
+            hookWindowOpen = false;
+
+            if (biteAgent != null)
+            {
+                fishSpawnVolume?.CancelBiteApproach(biteAgent);
+                biteAgent = null;
+            }
+
+            bobDipped = false;
+            bobController?.EndReelHold();
+            bobController?.ResetToRest();
+            SetState(TinyFishingState.GameOver);
         }
 
         private void SetState(TinyFishingState next)

@@ -1,7 +1,9 @@
 using TinyFishing.Input;
+using TinyFishing.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace TinyFishing.UI
@@ -13,8 +15,8 @@ namespace TinyFishing.UI
     public sealed class TinyFishingStartMenu : MonoBehaviour
     {
         [Header("Scenes")]
-        [SerializeField] private string infiniteGameplaySceneName = "Pond Casual";
-        [SerializeField] private string timeLimitedGameplaySceneName = "Pond Timed";
+        [FormerlySerializedAs("infiniteGameplaySceneName")]
+        [SerializeField] private string gameplaySceneName = "Pond Casual";
 
         [Header("Panels")]
         [SerializeField] private GameObject mainPanel;
@@ -185,22 +187,8 @@ namespace TinyFishing.UI
             TinyFishingInputPreferences.Save(selectedInputState);
             TinyFishingGameModePreferences.Save(selectedGameMode);
 
-            if (selectedGameMode == TinyFishingGameMode.TimeLimited)
-            {
-                if (gameModeStatusText != null)
-                {
-                    gameModeStatusText.text = "TIME LIMITED mode saved - coming soon";
-                }
-
-                Debug.Log("Time Limited mode was selected and saved. Scene loading is not implemented yet.");
-
-                // TODO: Enable this after the time-limited gameplay scene is implemented.
-                // SceneManager.LoadScene(timeLimitedGameplaySceneName);
-                return;
-            }
-
             isLoading = true;
-            SceneManager.LoadScene(infiniteGameplaySceneName);
+            SceneManager.LoadScene(gameplaySceneName);
         }
 
         private void ApplyGameModeSelection(TinyFishingGameMode mode)
@@ -217,7 +205,7 @@ namespace TinyFishing.UI
             {
                 gameModeStatusText.text = infiniteSelected
                     ? "Play without a time limit"
-                    : "Coming soon - your selection is saved";
+                    : "Score as much as possible in 60 seconds";
             }
             if (infiniteModeButtonImage != null)
             {
@@ -225,7 +213,7 @@ namespace TinyFishing.UI
             }
             if (timeLimitedModeButtonImage != null)
             {
-                timeLimitedModeButtonImage.color = infiniteSelected ? comingSoonColor : selectedColor;
+                timeLimitedModeButtonImage.color = infiniteSelected ? unselectedColor : selectedColor;
             }
         }
 

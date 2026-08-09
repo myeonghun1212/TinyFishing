@@ -254,6 +254,11 @@ private void HandleStateChanged(TinyFishingState state)
                 case TinyFishingState.RoundResult:
                     instructionText.text = string.Empty;
                     break;
+                case TinyFishingState.GameOver:
+                    instructionText.text = string.Empty;
+                    feedbackText.text = string.Empty;
+                    SetGaugeVisible(false, instant: true);
+                    break;
             }
         }
 

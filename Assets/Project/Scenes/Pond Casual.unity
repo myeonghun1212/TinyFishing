@@ -7187,6 +7187,8 @@ GameObject:
   - component: {fileID: 1209684433}
   - component: {fileID: 1209684434}
   - component: {fileID: 1209684435}
+  - component: {fileID: 1209684436}
+  - component: {fileID: 1209684437}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -7259,7 +7261,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c931a10fc126e6544a2b98d04cc08ece, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Core.TinyFishingGameManager
-  config: {fileID: 11400000, guid: b18755bd4b8a41c44b1f67f7fdad9b4e, type: 2}
+  infiniteConfig: {fileID: 11400000, guid: b18755bd4b8a41c44b1f67f7fdad9b4e, type: 2}
+  timeLimitedConfig: {fileID: 11400000, guid: e42c43171fadb234eb56f963caffe66b, type: 2}
   inputBehaviour: {fileID: 1209684431}
   fishCatalog:
   - {fileID: 11400000, guid: 253b5043379e4eb79787101f93287227, type: 2}
@@ -7599,6 +7602,36 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1209684436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209684428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a105e9955d224db2a5b89dd8d328ec51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Core.TinyFishingTimeAttackController
+  gameManager: {fileID: 1209684430}
+  durationSeconds: 180
+  resultDisplaySeconds: 4
+  startSceneName: Pond Start Menu
+--- !u!114 &1209684437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209684428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b206fa066e334cc3b6c90ee9e439fd62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.UI.TinyFishingTimeAttackHUD
+  controller: {fileID: 1209684436}
+  targetCanvas: {fileID: 0}
 --- !u!1001 &1255919657
 PrefabInstance:
   m_ObjectHideFlags: 0

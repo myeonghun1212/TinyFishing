@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Gold Fish
   rarity: 4
   baseScore: 750
-  resistance: 1.2
+  resistance: 1
   maxHealth: 400
   progressDecayRate: 0.148
   moveSpeed: 1.61

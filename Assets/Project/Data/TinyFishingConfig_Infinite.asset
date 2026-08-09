@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 077242eda3ef5ae4d824654cd657ff44, type: 3}
+  m_Name: TinyFishingConfig_Infinite
+  m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Data.TinyFishingConfig
+  shakeThreshold: 4.72
+  castCooldown: 0.6
+  dragCastThreshold: 260
+  biteDelayRange: {x: 3, y: 5}
+  fishBiteApproachSpeed: 2.2
+  biteHookWindowSeconds: 0.51
+  bobDipDepth: 0.18
+  bobDipDownTime: 0.12
+  bobDipReturnTime: 0.18
+  maximumTiltAngle: 28
+  maximumPitchAngle: 24
+  dragRange: 220
+  dragStartThreshold: 14
+  tapMaxDuration: 0.35
+  sensorSmoothing: 0.25
+  alignDeadZone: 0.16
+  fallbackDirectionChangeIntervalRange: {x: 0.6, y: 1.6}
+  fallbackFishMoveSpeed: 1.4
+  progressPerGoodTap: 0.14
+  progressLossPerBadTap: 0.1
+  tiltUpTapBonusMultiplier: 1.11
+  tiltUpTapPenaltyMultiplier: 0.3
+  tiltBonusAngleRange: 24
+  startingProgress: 0.3
+  fallbackProgressDecayRate: 0.05
+  escapeGraceSeconds: 3
+  rodMaxYawDegrees: 32
+  rodMaxPitchDegrees: 26
+  hookBobAmplitude: 0.05
+  hookBobSpeed: 1.6
+  fallbackScorePerCatch: 50

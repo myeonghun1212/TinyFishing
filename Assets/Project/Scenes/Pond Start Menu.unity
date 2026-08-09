@@ -7711,8 +7711,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9fc032c7e9ea0ec4a81131de56d45ff2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.UI.TinyFishingStartMenu
-  infiniteGameplaySceneName: Pond Casual
-  timeLimitedGameplaySceneName: Pond Timed
+  gameplaySceneName: Pond Casual
   mainPanel: {fileID: 681559299}
   settingsPanel: {fileID: 563513060}
   settingsButton: {fileID: 299963766}
@@ -8231,9 +8230,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'TIME LIMITED
-
-    COMING SOON'
+  m_Text: "TIME LIMITED\n1\uBD84 30\uCD08 \uC2DC\uAC04\uC81C\uD55C \uBAA8\uB4DC"
 --- !u!222 &1389348385
 CanvasRenderer:
   m_ObjectHideFlags: 0
