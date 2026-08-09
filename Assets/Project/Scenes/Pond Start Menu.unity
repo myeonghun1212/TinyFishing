@@ -5361,7 +5361,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 64
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -8000,7 +8000,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9fc032c7e9ea0ec4a81131de56d45ff2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.UI.TinyFishingStartMenu
-  gameplaySceneName: Pond FPV
+  gameplaySceneName: Pond Casual
   gyroButton: {fileID: 1260863265}
   touchButton: {fileID: 659443513}
   startButton: {fileID: 248665228}
@@ -8012,6 +8012,13 @@ MonoBehaviour:
   touchButtonImage: {fileID: 659443510}
   selectedColor: {r: 0.16, g: 0.62, b: 0.82, a: 1}
   unselectedColor: {r: 0.16, g: 0.21, b: 0.27, a: 1}
+  gyroReadyMessage: "\uC790\uC774\uB85C \uC900\uBE44 \uC644\uB8CC - \uD754\uB4E4\uC5B4\uC11C
+    \uC2DC\uC791\uD558\uC138\uC694"
+  sensorUnavailableMessage: "\uB3D9\uC791 \uC13C\uC11C\uB97C \uC0AC\uC6A9\uD560 \uC218
+    \uC5C6\uC2B5\uB2C8\uB2E4\n(\uC5D0\uB514\uD130: Enter \uD0A4\uB97C \uB20C\uB7EC
+    \uD14C\uC2A4\uD2B8)"
+  gyroModeLabel: "\uC790\uC774\uB85C"
+  touchModeLabel: "\uD130\uCE58\uC2A4\uD06C\uB9B0"
   swingThreshold: 4.72
   sensorSmoothing: 0.25
   armingDelay: 0.75

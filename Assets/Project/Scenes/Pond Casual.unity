@@ -6425,8 +6425,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'BEST: 0'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
+  m_sharedMaterial: {fileID: 8578340521980235607, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -7234,6 +7234,16 @@ MonoBehaviour:
   inputBehaviour: {fileID: 1209684431}
   instructionText: {fileID: 1460616728}
   feedbackText: {fileID: 1759602934}
+  readyToCastMessage: "\uD3F0\uC744 \uD754\uB4E4\uC5B4 \uB09A\uC2EF\uB300\uB97C \uB358\uC9C0\uC138\uC694!"
+  waitingForBiteMessage: "\uC785\uC9C8\uC744 \uAE30\uB2E4\uB9AC\uB294 \uC911..."
+  approachingMessage: "\uBBF8\uB07C \uC8FC\uBCC0\uC744 \uB9F4\uB3C4\uB294 \uC911..."
+  bitingMessage: "\uC9C0\uAE08 \uD0ED\uD558\uC138\uC694!"
+  reelingMessage: "\uAE30\uC6B8\uC5EC\uC11C \uC870\uC900\uD558\uACE0, \uCD08\uB85D\uC0C9\uC77C
+    \uB54C \uD0ED\uD558\uC138\uC694!"
+  caughtMessage: "\uB09A\uC558\uB2E4!"
+  gotAwayMessage: "\uB193\uCCE4\uC5B4\uC694"
+  scoreLabel: "\uC810\uC218"
+  bestLabel: "\uCD5C\uACE0 \uAE30\uB85D"
   caughtFishNameText: {fileID: 1332348015}
   caughtFishModelAnchor: {fileID: 63466277}
   flipDuration: 0.15
@@ -7852,8 +7862,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
+  m_sharedMaterial: {fileID: 8578340521980235607, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -8154,8 +8164,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Shake your device to cast!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
+  m_sharedMaterial: {fileID: 8578340521980235607, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -9464,8 +9474,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
+  m_sharedMaterial: {fileID: 8578340521980235607, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
