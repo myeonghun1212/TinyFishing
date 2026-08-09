@@ -10,7 +10,13 @@ using NanFishing.Data;
 namespace TinyFishing.Core
 {
     // Orchestrates the TinyFishing Demo2 game loop:
-    // ReadyToCast -> (shake to cast) -> WaitingForBite -> Reeling -> RoundResult -> ReadyToCast
+    // ReadyToCast -> (shake to cast) -> WaitingForBite -> Approaching -> Biting -> Reeling -> RoundResult -> ReadyToCast
+    //   WaitingForBite: bob is out; after a random delay a fish is chosen and starts swimming in.
+    //   Approaching: FishSpawnVolume hands the chosen fish to a FishBiteAgent that swims it beneath the bob.
+    //     A reel tap here is premature - it spooks the fish back to the pool and forces a rethrow.
+    //   Biting: the fish has arrived, the bob dips, and a short hook window is open. A reel tap inside
+    //     the window hooks the fish and starts Reeling; too late (or no tap) lets it escape.
+    //   Reeling / RoundResult: unchanged tap-to-align minigame, then back to ReadyToCast.
     public sealed class TinyFishingGameManager : MonoBehaviour
     {
         private const string BestScoreKey = "TinyFishing.BestScore";
@@ -26,6 +32,8 @@ namespace TinyFishing.Core
         [Tooltip("Optional: drives which fish types are in rotation and each one's relative catch chance. When assigned, this takes priority over fishCatalog's built-in rarity odds.")]
         [SerializeField] private FishPool fishPool;
         [SerializeField] private FishingBobController bobController;
+        [Tooltip("The volume of roaming fish visuals the chosen fish swims in from during Approaching. Optional - if unassigned (or it has no free fish), the round skips straight to the bite/hook window with no swim-in visual.")]
+        [SerializeField] private FishSpawnVolume fishSpawnVolume;
 
         [Header("Audio")]
         [SerializeField] private AudioSource audioSource;
@@ -39,6 +47,11 @@ namespace TinyFishing.Core
         private ReelProgressModel reelModel;
         [SerializeField] private FishDefinition currentFish;
         private readonly Dictionary<FishDefinition, int> sessionCatchCounts = new Dictionary<FishDefinition, int>();
+
+        private Coroutine activeRoutine;
+        private FishBiteAgent biteAgent;
+        private bool hookWindowOpen;
+        private bool bobDipped;
 
         private int score;
         private int fishCaught;
@@ -98,8 +111,18 @@ namespace TinyFishing.Core
             }
 
             fish.Tick(Time.deltaTime);
+            reelModel.Tick(Time.deltaTime);
             var aligned = reelModel.IsAligned(input.Direction, fish.Direction);
             ReelingUpdated?.Invoke(input.Direction, fish.Direction, aligned, reelModel.Progress);
+
+            // Fish marker red (misaligned) pulls the bob under; safe (aligned) lets it ease back.
+            bobController?.UpdateReelTension(!aligned);
+
+            if (reelModel.HasEscaped)
+            {
+                ResolveRound(false);
+                return;
+            }
 
             if (reelModel.IsCaught)
             {
@@ -113,10 +136,10 @@ namespace TinyFishing.Core
             {
                 return;
             }
-            StartCoroutine(CastAndBiteRoutine());
+            activeRoutine = StartCoroutine(CastAndBiteRoutine());
         }
 
-private IEnumerator CastAndBiteRoutine()
+        private IEnumerator CastAndBiteRoutine()
         {
             SetState(TinyFishingState.WaitingForBite);
             if (bobController != null)
@@ -135,23 +158,133 @@ private IEnumerator CastAndBiteRoutine()
             {
                 fish.ClearFishOverride();
             }
-            fish.Reset();
-            reelModel.Reset(currentFish != null ? currentFish.Resistance : 1f,
-                currentFish != null ? currentFish.MaxHealth : 100f);
-            SetState(TinyFishingState.Reeling);
-        }
 
-private void HandleReelTap()
-        {
-            if (State != TinyFishingState.Reeling)
+            // Send the chosen fish swimming in toward the bob. If no spawn volume is
+            // assigned, or it has no free fish to give up, skip straight to the bite -
+            // the round stays playable, it just won't have a swim-in visual this time.
+            SetState(TinyFishingState.Approaching);
+            biteAgent = fishSpawnVolume != null && bobController != null
+                ? fishSpawnVolume.BeginBiteApproach(currentFish, bobController.transform, config.fishBiteApproachSpeed)
+                : null;
+
+            if (biteAgent != null)
             {
-                return;
+                while (!biteAgent.HasArrived)
+                {
+                    yield return null;
+                }
             }
 
-            var goodTap = reelModel.ApplyTap(input.Direction, fish.Direction, input.VerticalDirection);
-            PlayReelTapSfx(goodTap);
-            ReelingUpdated?.Invoke(input.Direction, fish.Direction,
-                reelModel.IsAligned(input.Direction, fish.Direction), reelModel.Progress);
+            // Bob dips and the hook window opens. A reel tap while State is Biting and
+            // hookWindowOpen is true (handled in HandleReelTap) hooks the fish and starts
+            // Reeling; if the window elapses first, the loop below falls through to a miss.
+            SetState(TinyFishingState.Biting);
+            if (bobController != null)
+            {
+                bobController.BeginDip(config.bobDipDepth, config.bobDipDownTime);
+            }
+            bobDipped = true;
+            hookWindowOpen = true;
+
+            var elapsed = 0f;
+            while (elapsed < config.biteHookWindowSeconds && State == TinyFishingState.Biting)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Still Biting after the loop means nobody hooked it in time - a successful
+            // hook (HandleReelTap) already moved State to Reeling and exited the loop above.
+            if (State == TinyFishingState.Biting)
+            {
+                hookWindowOpen = false;
+                FailBite();
+            }
+
+            activeRoutine = null;
+        }
+
+        private void HandleReelTap()
+        {
+            switch (State)
+            {
+                case TinyFishingState.WaitingForBite:
+                case TinyFishingState.Approaching:
+                    // Reeling before the bob has even dipped spooks the fish off early.
+                    AbortBite();
+                    break;
+
+                case TinyFishingState.Biting:
+                    if (!hookWindowOpen)
+                    {
+                        return;
+                    }
+                    hookWindowOpen = false;
+                    BeginReelingAfterHook();
+                    break;
+
+                case TinyFishingState.Reeling:
+                    var goodTap = reelModel.ApplyTap(input.Direction, fish.Direction, input.VerticalDirection);
+                    PlayReelTapSfx(goodTap);
+                    ReelingUpdated?.Invoke(input.Direction, fish.Direction,
+                        reelModel.IsAligned(input.Direction, fish.Direction), reelModel.Progress);
+                    break;
+            }
+        }
+
+        // Cancels the in-flight cast/bite coroutine (if any) and resolves the round as a
+        // miss - used when the player reels too early (before the bob dips) or too late
+        // (the hook window elapses with no tap).
+        private void AbortBite()
+        {
+            if (activeRoutine != null)
+            {
+                StopCoroutine(activeRoutine);
+                activeRoutine = null;
+            }
+            FailBite();
+        }
+
+        private void FailBite()
+        {
+            hookWindowOpen = false;
+
+            if (biteAgent != null)
+            {
+                fishSpawnVolume?.CancelBiteApproach(biteAgent);
+                biteAgent = null;
+            }
+
+            if (bobDipped && bobController != null)
+            {
+                bobController.EndDip(false, config.bobDipReturnTime);
+            }
+            bobDipped = false;
+
+            SetState(TinyFishingState.RoundResult);
+            RoundResolved?.Invoke(false, null);
+            StartCoroutine(ReturnToCastingRoutine());
+        }
+
+        // Called from HandleReelTap when a tap lands inside the Biting hook window -
+        // the fish is hooked, so hand it off to the real reeling minigame.
+        private void BeginReelingAfterHook()
+        {
+            if (bobController != null)
+            {
+                bobController.EndDip(true, config.bobDipReturnTime);
+                // Fish stays hooked under the bob (FishBiteAgent keeps tracking it) all the
+                // way through Reeling - it's only removed from the pool once the round
+                // actually resolves as a catch (see ResolveRound).
+                bobController.BeginReelHold();
+            }
+            bobDipped = false;
+
+            fish.Reset();
+            reelModel.Reset(currentFish != null ? currentFish.Resistance : 1f,
+                currentFish != null ? currentFish.MaxHealth : 100f,
+                currentFish != null ? currentFish.ProgressDecayRate : config.fallbackProgressDecayRate);
+            SetState(TinyFishingState.Reeling);
         }
 
         private void PlayReelTapSfx(bool goodTap)
@@ -174,7 +307,7 @@ private void HandleReelTap()
             audioSource.Play();
         }
 
-private void PlayCatchSfx()
+        private void PlayCatchSfx()
         {
             if (catchAudioSource == null || successfulCatchClip == null)
             {
@@ -188,9 +321,24 @@ private void PlayCatchSfx()
             catchAudioSource.Play();
         }
 
-private void ResolveRound(bool caught)
+        private void ResolveRound(bool caught)
         {
             SetState(TinyFishingState.RoundResult);
+            bobController?.EndReelHold();
+
+            if (biteAgent != null)
+            {
+                if (caught)
+                {
+                    fishSpawnVolume?.ResolveBiteCaught(biteAgent);
+                }
+                else
+                {
+                    fishSpawnVolume?.CancelBiteApproach(biteAgent);
+                }
+                biteAgent = null;
+            }
+
             if (caught)
             {
                 PlayCatchSfx();
@@ -213,7 +361,7 @@ private void ResolveRound(bool caught)
             StartCoroutine(ReturnToCastingRoutine());
         }
 
-private FishDefinition SelectFish()
+        private FishDefinition SelectFish()
         {
             if (fishPool != null)
             {
@@ -240,7 +388,6 @@ private FishDefinition SelectFish()
                 fishCatalog[UnityEngine.Random.Range(0, fishCatalog.Length)];
         }
 
-
         private IEnumerator ReturnToCastingRoutine()
         {
             yield return new WaitForSeconds(1.1f);
@@ -258,3 +405,4 @@ private FishDefinition SelectFish()
         }
     }
 }
+

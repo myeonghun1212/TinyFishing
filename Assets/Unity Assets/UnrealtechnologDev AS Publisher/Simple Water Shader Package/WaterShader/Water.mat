@@ -56,7 +56,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _BasedOnWorldScale: 0
-    - _Emission: 0.06
+    - _Emission: 0.149
     - _FoamAmount: 0.18
     - _FoamShoreSpeed: 0.015
     - _FoamSpeed: 0.004
@@ -78,8 +78,8 @@ Material:
     m_Colors:
     - _FoamColor: {r: 1, g: 1, b: 1, a: 1}
     - _ShoreFoamColor: {r: 1, g: 1, b: 1, a: 1}
-    - _WaterBrightColor: {r: 0.0039215684, g: 0.84869325, b: 1, a: 0.8666667}
-    - _WaterDarkColor: {r: 0, g: 0.47904146, b: 1, a: 0.57254905}
+    - _WaterBrightColor: {r: 0.0039215684, g: 0.84869325, b: 1, a: 0.8156863}
+    - _WaterDarkColor: {r: 0, g: 0.56467056, b: 1, a: 0.74509805}
     - _WaterDeepColor: {r: 0.26274508, g: 0.38370466, b: 0.98039216, a: 0.8235294}
     - _WaterFoamColor: {r: 1, g: 1, b: 1, a: 1}
     - _WaterNearColor: {r: 0, g: 0.78226805, b: 1, a: 0.78039217}

@@ -20,6 +20,7 @@ namespace NanFishing.Data
         [SerializeField, Min(1)] private int baseScore = 100;
         [SerializeField, Range(0.2f, 2f)] private float resistance = 1f;
         [SerializeField, Min(1)] private int maxHealth = 100;
+        [SerializeField, Range(0f, 1f)] private float progressDecayRate = 0.05f;
         [SerializeField, Range(0.1f, 2f)] private float moveSpeed = 0.7f;
         [SerializeField, Range(0.2f, 3f)] private float directionChangeInterval = 1.2f;
         [SerializeField] private Color color = Color.cyan;
@@ -31,14 +32,17 @@ namespace NanFishing.Data
         public int BaseScore => baseScore;
         public float Resistance => resistance;
         public int MaxHealth => maxHealth;
+        // Progress (0..1 of the reel bar) lost per second while this fish is being reeled in.
+        public float ProgressDecayRate => progressDecayRate;
         public float MoveSpeed => moveSpeed;
         public float DirectionChangeInterval => directionChangeInterval;
         public float SuccessReward => (int)rarity * 3;
         public Color Color => color;
         public GameObject Prefab => prefab;
 
-public void ConfigureRuntime(string id, string label, FishRarity fishRarity, int score,
-            float fishResistance, float speed, float turnInterval, Color fishColor, int fishMaxHealth = 100)
+        public void ConfigureRuntime(string id, string label, FishRarity fishRarity, int score,
+            float fishResistance, float speed, float turnInterval, Color fishColor, int fishMaxHealth = 100,
+            float fishProgressDecayRate = 0.05f)
         {
             fishId = id;
             displayName = label;
@@ -49,6 +53,7 @@ public void ConfigureRuntime(string id, string label, FishRarity fishRarity, int
             directionChangeInterval = turnInterval;
             color = fishColor;
             maxHealth = fishMaxHealth;
+            progressDecayRate = fishProgressDecayRate;
         }
     }
 }

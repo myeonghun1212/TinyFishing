@@ -15,7 +15,12 @@ MonoBehaviour:
   shakeThreshold: 4.72
   castCooldown: 0.6
   dragCastThreshold: 260
-  biteDelayRange: {x: 0.4, y: 1.4}
+  biteDelayRange: {x: 3, y: 5}
+  fishBiteApproachSpeed: 2.2
+  biteHookWindowSeconds: 0.51
+  bobDipDepth: 0.18
+  bobDipDownTime: 0.12
+  bobDipReturnTime: 0.18
   maximumTiltAngle: 28
   maximumPitchAngle: 24
   dragRange: 220
@@ -27,9 +32,12 @@ MonoBehaviour:
   fallbackFishMoveSpeed: 1.4
   progressPerGoodTap: 0.14
   progressLossPerBadTap: 0.1
-  tiltUpTapBonusMultiplier: 1.29
+  tiltUpTapBonusMultiplier: 1.11
   tiltUpTapPenaltyMultiplier: 0.3
   tiltBonusAngleRange: 24
+  startingProgress: 0.3
+  fallbackProgressDecayRate: 0.05
+  escapeGraceSeconds: 3
   rodMaxYawDegrees: 32
   rodMaxPitchDegrees: 26
   hookBobAmplitude: 0.05

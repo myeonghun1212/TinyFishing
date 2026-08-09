@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Project/Scenes/Pond Start Menu.unity
     guid: 3a930f14e6466594a9d8940b435fda19
   - enabled: 1
-    path: Assets/Project/Scenes/Pond FPV.unity
+    path: Assets/Project/Scenes/Pond Casual.unity
     guid: 9f5fce34d4d610f49a6332cbd8f804a5
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}

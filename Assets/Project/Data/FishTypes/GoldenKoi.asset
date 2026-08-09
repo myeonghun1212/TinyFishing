@@ -12,13 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ae063504da98bf4c9f1a5a27de0ddaa, type: 3}
   m_Name: GoldenKoi
   m_EditorClassIdentifier: Assembly-CSharp::NanFishing.Data.FishDefinition
-  fishId: golden_koi
-  displayName: Golden Koi
+  fishId: gold_fish
+  displayName: Gold Fish
   rarity: 4
   baseScore: 750
   resistance: 1.024
-  maxHealth: 200
+  maxHealth: 400
+  progressDecayRate: 0.148
   moveSpeed: 1.61
   directionChangeInterval: 0.82
   color: {r: 1, g: 0.75, b: 0.15, a: 1}
-  prefab: {fileID: 3793146743532390487, guid: 89c7d56787878bd45a97b081a69b5b43, type: 3}
+  prefab: {fileID: 8085441241316860872, guid: 837f01b050a581d428b333caf22a8557, type: 3}

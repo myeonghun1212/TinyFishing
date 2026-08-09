@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace TinyFishing.Fishing
@@ -22,11 +23,26 @@ namespace TinyFishing.Fishing
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip throwClip;
         [SerializeField] private AudioClip splashClip;
+        [Tooltip("Played the instant the fish takes the bait and the bob starts its dip (BeginDip).")]
+        [SerializeField] private AudioClip biteSplashClip;
 
         private Rigidbody body;
         private bool hasSplashed;
         private Vector3 restPosition;
         private Quaternion restRotation;
+
+        private Coroutine dipRoutine;
+        private Vector3 dipRestPosition;
+        private bool isDipping;
+
+        [Header("Reel Tension")]
+        [Tooltip("Extra depth (world units) the bob is pulled down while the fish marker is misaligned (red) during reeling.")]
+        [SerializeField] private float reelTensionPullDepth = 0.12f;
+        [Tooltip("How quickly (units/sec) the bob eases toward its tension target each frame.")]
+        [SerializeField] private float reelTensionSpeed = 4f;
+
+        private Vector3 reelHeldPosition;
+        private bool reelHoldActive;
 
         private void Awake()
         {
@@ -62,6 +78,114 @@ namespace TinyFishing.Fishing
             velocity.y = Mathf.Sin(angleRad) * castStrength;
 
             body.linearVelocity = velocity;
+        }
+
+        // Starts the fish-bite dip: animates the bob down by `depth` over `downTime`
+        // seconds and freezes it there (kinematic, bypassing Buoyancy) until EndDip
+        // resolves whether the hook window was caught in time.
+        public void BeginDip(float depth, float downTime)
+        {
+            if (dipRoutine != null)
+            {
+                StopCoroutine(dipRoutine);
+            }
+
+            PlaySfx(biteSplashClip);
+
+            dipRestPosition = transform.position;
+            isDipping = true;
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.isKinematic = true;
+            dipRoutine = StartCoroutine(DipDownRoutine(depth, Mathf.Max(0.01f, downTime)));
+        }
+
+        private IEnumerator DipDownRoutine(float depth, float duration)
+        {
+            var from = transform.position;
+            var to = from + Vector3.down * depth;
+            var elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                transform.position = Vector3.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+            transform.position = to;
+            dipRoutine = null;
+        }
+
+        // Resolves an in-progress dip. On a successful hook, the bob stays held under
+        // the surface (kinematic) for the reel minigame - ResetToRest() restores normal
+        // physics on the next cast. On a missed hook window, it springs back up to
+        // where it was floating before the dip and hands control back to Buoyancy.
+        public void EndDip(bool caught, float returnTime)
+        {
+            if (dipRoutine != null)
+            {
+                StopCoroutine(dipRoutine);
+                dipRoutine = null;
+            }
+
+            if (caught)
+            {
+                isDipping = false;
+                return;
+            }
+
+            dipRoutine = StartCoroutine(DipReturnRoutine(Mathf.Max(0.01f, returnTime)));
+        }
+
+// Called once the fish is hooked and Reeling begins - captures the bob's current
+        // (dipped, underwater, kinematic) position as the baseline that reel tension pulls
+        // away from and eases back toward.
+        public void BeginReelHold()
+        {
+            // Baseline is the floating position from BEFORE the bite dip (dipRestPosition),
+            // not the bob's current position - it's still sitting at the dipped/submerged
+            // spot when this is called (right after EndDip(true, ...)), so using the current
+            // position here would keep it stuck underwater for the whole Reeling phase.
+            reelHeldPosition = dipRestPosition;
+            reelHoldActive = true;
+        }
+
+        // Called once the round resolves (catch lands) - stops UpdateReelTension from moving
+        // the bob any further. ResetToRest() (on the next cast) takes over from here.
+        public void EndReelHold()
+        {
+            reelHoldActive = false;
+        }
+
+        // Eases the bob toward (pulled) or back to (!pulled) its held position each frame,
+        // driven by TinyFishingGameManager from the live fish-marker alignment during Reeling -
+        // misaligned (marker red) pulls the bob under; aligned (marker safe) lets it settle back.
+        public void UpdateReelTension(bool pulled)
+        {
+            if (!reelHoldActive)
+            {
+                return;
+            }
+
+            var target = reelHeldPosition + (pulled ? Vector3.down * reelTensionPullDepth : Vector3.zero);
+            transform.position = Vector3.MoveTowards(transform.position, target, reelTensionSpeed * Time.deltaTime);
+        }
+
+
+        private IEnumerator DipReturnRoutine(float duration)
+        {
+            var from = transform.position;
+            var to = dipRestPosition;
+            var elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                transform.position = Vector3.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+            transform.position = to;
+            isDipping = false;
+            body.isKinematic = false;
+            dipRoutine = null;
         }
 
         private void OnTriggerEnter(Collider other)

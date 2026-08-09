@@ -4,6 +4,8 @@ namespace TinyFishing.Core
     {
         ReadyToCast,
         WaitingForBite,
+        Approaching,
+        Biting,
         Reeling,
         RoundResult
     }

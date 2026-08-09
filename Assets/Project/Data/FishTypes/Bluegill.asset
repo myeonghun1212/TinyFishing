@@ -21,4 +21,4 @@ MonoBehaviour:
   moveSpeed: 0.3
   directionChangeInterval: 2.5
   color: {r: 0.55, g: 0.75, b: 0.9, a: 1}
-  prefab: {fileID: 5440476660054940829, guid: 7c609d199e833e64e80264c75b43688d, type: 3}
+  prefab: {fileID: 5039138084969767215, guid: dfa8d75dc6662a84d9a6a63cb148046c, type: 3}

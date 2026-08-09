@@ -23,6 +23,11 @@ namespace TinyFishing.UI
         [SerializeField] private TextMeshProUGUI fishCountText;
         [SerializeField] private TextMeshProUGUI bestText;
 
+        [Header("Gauge Visibility")]
+        [Tooltip("CanvasGroup wrapping the gauge track/progress bar. Hidden (alpha 0) until a bite is successfully hooked, then fades in as Reeling starts.")]
+        [SerializeField] private CanvasGroup gaugeCanvasGroup;
+        [SerializeField] private float gaugeFadeDuration = 0.25f;
+
         [Header("Gauge")]
         [SerializeField] private RectTransform gaugeTrack;
         [SerializeField] private RectTransform fishMarker;
@@ -39,10 +44,16 @@ namespace TinyFishing.UI
 
         [Header("Progress")]
         [SerializeField] private Image progressFill;
+        [SerializeField] private Color progressEscapeColor = new Color(0.92f, 0.20f, 0.20f);
 
         [Header("Rod (3D)")]
         [SerializeField] private FishingRodController rodController;
-        [SerializeField] private MonoBehaviour inputBehaviour; // must implement ITinyFishingInput; used to recalibrate on round reset
+        
+        [Header("Rope (3D)")]
+        [Tooltip("Renderer on the 3D rope/line mesh. Its material is tinted from normal toward ropeEscapeColor while the fish sits at 0% progress during the escape grace period.")]
+        [SerializeField] private Renderer[] ropeRenderers;
+        [SerializeField] private Color ropeEscapeColor = new Color(0.92f, 0.20f, 0.20f);
+[SerializeField] private MonoBehaviour inputBehaviour; // must implement ITinyFishingInput; used to recalibrate on round reset
 
         [Header("Feedback")]
         [SerializeField] private TextMeshProUGUI instructionText;
@@ -63,6 +74,10 @@ namespace TinyFishing.UI
         private Coroutine stateFlipRoutine;
         [SerializeField] private float flipDuration = 0.15f;
         private Color playerMarkerBaseColor = Color.white;
+        private Coroutine gaugeFadeRoutine;
+                private Color[] ropeNormalColors;
+        private float ropeEscapeTimer;
+private Color progressFillNormalColor = Color.white;
 
 
 private void Awake()
@@ -83,7 +98,27 @@ private void Awake()
                 playerMarkerBaseColor = playerMarkerImage.color;
             }
 
+            if (progressFill != null)
+            {
+                
+
+            if (ropeRenderers != null && ropeRenderers.Length > 0)
+            {
+                ropeNormalColors = new Color[ropeRenderers.Length];
+                for (int i = 0; i < ropeRenderers.Length; i++)
+                {
+                    ropeNormalColors[i] = ropeRenderers[i] != null ? ropeRenderers[i].material.color : Color.white;
+                }
+            }
+progressFillNormalColor = progressFill.color;
+            }
+
             rodInput = inputBehaviour as ITinyFishingInput;
+
+            if (gaugeCanvasGroup != null)
+            {
+                gaugeCanvasGroup.alpha = 0f;
+            }
         }
 
 
@@ -121,12 +156,55 @@ private void Awake()
             rodController?.ResetRod();
         }
 
+private void SetGaugeVisible(bool visible, bool instant)
+        {
+            if (gaugeCanvasGroup == null)
+            {
+                return;
+            }
+
+            var target = visible ? 1f : 0f;
+
+            if (gaugeFadeRoutine != null)
+            {
+                StopCoroutine(gaugeFadeRoutine);
+                gaugeFadeRoutine = null;
+            }
+
+            if (instant || gaugeFadeDuration <= 0f)
+            {
+                gaugeCanvasGroup.alpha = target;
+                return;
+            }
+
+            gaugeFadeRoutine = StartCoroutine(FadeGaugeRoutine(target));
+        }
+
+        private IEnumerator FadeGaugeRoutine(float target)
+        {
+            var start = gaugeCanvasGroup.alpha;
+            var duration = Mathf.Max(0.01f, gaugeFadeDuration);
+            var elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                gaugeCanvasGroup.alpha = Mathf.Lerp(start, target, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+
+            gaugeCanvasGroup.alpha = target;
+            gaugeFadeRoutine = null;
+        }
+
+
 private void HandleStateChanged(TinyFishingState state)
         {
             switch (state)
             {
                 case TinyFishingState.ReadyToCast:
                     instructionText.text = "Shake your phone to cast!";
+                    SetGaugeVisible(false, instant: true);
                     feedbackText.text = string.Empty;
                     if (caughtFishNameText != null)
                     {
@@ -137,14 +215,21 @@ private void HandleStateChanged(TinyFishingState state)
                         Destroy(caughtFishModelInstance);
                         caughtFishModelInstance = null;
                     }
-                    SetProgress(0f);
+                    SetProgress(0f, false);
                     ResetRig();
                     break;
                 case TinyFishingState.WaitingForBite:
                     instructionText.text = "Waiting for a bite...";
                     break;
+                case TinyFishingState.Approaching:
+                    instructionText.text = "Something's circling the bait...";
+                    break;
+                case TinyFishingState.Biting:
+                    instructionText.text = "Tap now!";
+                    break;
                 case TinyFishingState.Reeling:
                     instructionText.text = "Tilt to aim, tap when green!";
+                    SetGaugeVisible(true, instant: false);
                     break;
                 case TinyFishingState.RoundResult:
                     instructionText.text = string.Empty;
@@ -223,7 +308,7 @@ private void HandleReelingUpdated(float playerDirection, float fishDirection, bo
                 fishMarkerImage.sprite = aligned ? fishSafeSprite : fishDangerSprite;
             }
 
-            SetProgress(progress);
+            SetProgress(progress, progress <= 0f);
         }
 
         private void PlaySplashSfx()
@@ -365,7 +450,7 @@ private void ResetRig()
         }
 
         
-private void SetProgress(float value)
+private void SetProgress(float value, bool aboutToEscape)
         {
             if (progressFill == null)
             {
@@ -379,6 +464,39 @@ private void SetProgress(float value)
             var anchorMax = fillRect.anchorMax;
             anchorMax.y = Mathf.Clamp01(value);
             fillRect.anchorMax = anchorMax;
+
+            // The bar itself always stays its normal color now - the rope tints red instead.
+            progressFill.color = progressFillNormalColor;
+            UpdateRopeEscapeTint(aboutToEscape);
+        }
+
+        // Gradually tints the 3D rope material toward ropeEscapeColor while the fish sits
+        // at 0% progress and the escape grace countdown (TinyFishingConfig.escapeGraceSeconds)
+        // is running, resetting back to normal the moment the escape threat clears.
+        private void UpdateRopeEscapeTint(bool aboutToEscape)
+        {
+            if (ropeRenderers == null || ropeRenderers.Length == 0)
+            {
+                return;
+            }
+
+            float graceSeconds = gameManager != null && gameManager.Config != null
+                ? Mathf.Max(0.01f, gameManager.Config.escapeGraceSeconds)
+                : 1f;
+
+            ropeEscapeTimer = aboutToEscape ? ropeEscapeTimer + Time.deltaTime : 0f;
+
+            float t = Mathf.Clamp01(ropeEscapeTimer / graceSeconds);
+            for (int i = 0; i < ropeRenderers.Length; i++)
+            {
+                if (ropeRenderers[i] == null)
+                {
+                    continue;
+                }
+
+                Color baseColor = ropeNormalColors != null && i < ropeNormalColors.Length ? ropeNormalColors[i] : Color.white;
+                ropeRenderers[i].material.color = Color.Lerp(baseColor, ropeEscapeColor, t);
+            }
         }
     }
 }
