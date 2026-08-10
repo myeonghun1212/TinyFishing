@@ -74,7 +74,6 @@ namespace TinyFishing.UI
             InitializeAudioSettings();
             ApplyInputSelection(TinyFishingInputPreferences.Load());
             ApplyGameModeSelection(TinyFishingGameModePreferences.Load());
-            ShowMainPanel();
         }
 
         private void OnDestroy()
