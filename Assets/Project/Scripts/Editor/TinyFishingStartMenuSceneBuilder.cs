@@ -1,239 +1,188 @@
 #if UNITY_EDITOR
+using System;
 using System.Linq;
 using TinyFishing.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
+using UnityEngine.Audio;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace TinyFishing.Editor
 {
+    /// <summary>
+    /// Wires the hand-authored start-menu hierarchy without rebuilding or repositioning UI.
+    /// </summary>
     public static class TinyFishingStartMenuSceneBuilder
     {
         private const string MenuScenePath = "Assets/Project/Scenes/Pond Start Menu.unity";
-        private const string GameplayScenePath = "Assets/Project/Scenes/Pond Casual.unity";
+        private const string AudioMixerPath = "Assets/Project/Audio/TinyFishingAudioMixer.mixer";
+        private const string BlurMaterialPath = "Assets/KawaseBlur/UnlitBlur.mat";
 
-        [MenuItem("Tools/Tiny Fishing/Build Start Menu")]
-        public static void Build()
+        [MenuItem("Tools/Tiny Fishing/Wire Start Menu UI")]
+        public static void Wire()
         {
             var scene = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
-            var existing = GameObject.Find("StartMenuUI");
-            if (existing != null)
+            var menuRoot = RequireRoot(scene, "MenuUI");
+            var startUi = RequireRoot(scene, "StartUI");
+            var controller = RequireComponent<TinyFishingStartMenu>(menuRoot);
+
+            var mainCanvas = RequireChild(menuRoot.transform, "MainCanvas");
+            var main = RequireChild(mainCanvas, "Main");
+            var modalCanvas = RequireChild(menuRoot.transform, "Setting&HowtoCanvas");
+            var settings = RequireChild(modalCanvas, "Setting");
+            var howTo = RequireChild(modalCanvas, "Howto");
+
+            var infinite = RequireButton(RequireChild(main, "Casual"));
+            var timeLimited = RequireButton(RequireChild(main, "Time"));
+            var openHowTo = RequireButton(RequireChild(main, "HowtoPlayButton"));
+            var openSettings = RequireButton(RequireChild(main, "SettingButton"));
+            var start = RequireButton(RequireChild(main, "StartButton"));
+
+            var gyroObject = RequireDescendant(settings, "Gyro");
+            var touchObject = RequireDescendant(settings, "Touch");
+            var gyro = RequireButton(gyroObject);
+            var touch = RequireButton(touchObject);
+
+            var recalibrationGroup = RequireDescendant(settings, "Recalibartion");
+            var recalibrateObject = recalibrationGroup.Cast<Transform>()
+                .FirstOrDefault(child => child.GetComponent<Image>() != null);
+            if (recalibrateObject == null)
             {
-                Object.DestroyImmediate(existing);
+                throw new InvalidOperationException("Recalibration image button was not found.");
             }
 
-            var root = new GameObject("StartMenuUI");
-            var controller = root.AddComponent<TinyFishingStartMenu>();
+            var closeSettings = RequireButton(RequireChild(settings, "Button"));
+            var closeHowTo = RequireButton(RequireChild(howTo, "BackButton"));
+            var recalibrate = RequireButton(recalibrateObject);
 
-            var canvasObject = CreateObject("Canvas", root.transform);
-            var canvas = canvasObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 100;
-            var scaler = canvasObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
-            scaler.matchWidthOrHeight = 0.5f;
-            canvasObject.AddComponent<GraphicRaycaster>();
+            var sfxSlider = RequireDescendant(RequireChild(settings, "EffectVolume"), "Slider")
+                .GetComponent<Slider>();
+            var bgmGroup = settings.Cast<Transform>()
+                .FirstOrDefault(child => child.name.Contains("BGA", StringComparison.OrdinalIgnoreCase));
+            if (bgmGroup == null)
+            {
+                throw new InvalidOperationException("BGM volume group was not found.");
+            }
 
-            var shade = CreatePanel("BackgroundShade", canvasObject.transform,
-                new Color(0.015f, 0.045f, 0.065f, 0.74f));
-            Stretch(shade.rectTransform);
+            var bgmSlider = RequireDescendant(bgmGroup, "Slider").GetComponent<Slider>();
+            if (bgmSlider == null || sfxSlider == null)
+            {
+                throw new InvalidOperationException("Both volume sliders must have Slider components.");
+            }
 
-            var card = CreatePanel("MenuCard", shade.transform,
-                new Color(0.035f, 0.09f, 0.12f, 0.96f));
-            SetAnchoredRect(card.rectTransform, new Vector2(0.5f, 0.5f),
-                new Vector2(900f, 1240f), Vector2.zero);
+            var blurMaterial = AssetDatabase.LoadAssetAtPath<Material>(BlurMaterialPath);
+            if (blurMaterial == null)
+            {
+                throw new InvalidOperationException($"Blur material is missing: {BlurMaterialPath}");
+            }
 
-            var mainPanel = CreateObject("MainPanel", card.transform);
-            Stretch(mainPanel.GetComponent<RectTransform>());
-            CreateText("Title", mainPanel.transform, "TINY FISHING", 68, FontStyle.Bold,
-                new Vector2(0f, 470f), new Vector2(760f, 100f), new Color(0.87f, 0.97f, 1f));
-            CreateText("Subtitle", mainPanel.transform, "CHOOSE A GAME MODE", 28, FontStyle.Normal,
-                new Vector2(0f, 390f), new Vector2(760f, 55f), new Color(0.48f, 0.76f, 0.83f));
+            settings.GetComponent<Image>().material = blurMaterial;
+            howTo.GetComponent<Image>().material = blurMaterial;
 
-            var settings = CreateButton("SettingsButton", mainPanel.transform, "SETTINGS",
-                new Vector2(282f, 525f), new Vector2(230f, 68f), 22);
-            var infinite = CreateButton("InfiniteModeButton", mainPanel.transform,
-                "INFINITE MODE\nNo time limit", new Vector2(0f, 235f), new Vector2(700f, 170f), 30);
-            var timeLimited = CreateButton("TimeLimitedModeButton", mainPanel.transform,
-                "TIME LIMITED\nCOMING SOON", new Vector2(0f, 25f), new Vector2(700f, 170f), 30);
-
-            var selectedGameMode = CreateText("SelectedGameMode", mainPanel.transform,
-                "INFINITE MODE", 34, FontStyle.Bold, new Vector2(0f, -125f),
-                new Vector2(760f, 60f), Color.white);
-            var gameModeStatus = CreateText("GameModeStatus", mainPanel.transform,
-                "Play without a time limit", 23, FontStyle.Normal, new Vector2(0f, -185f),
-                new Vector2(760f, 75f), new Color(0.56f, 0.77f, 0.82f));
-            var start = CreateButton("StartButton", mainPanel.transform, "START GAME",
-                new Vector2(0f, -320f), new Vector2(470f, 105f), 30);
-            CreateText("MainFooter", mainPanel.transform,
-                "Gyro: swing to start  |  Touch: tap Start Game", 20, FontStyle.Normal,
-                new Vector2(0f, -505f), new Vector2(780f, 65f), new Color(0.45f, 0.61f, 0.65f));
-
-            var settingsPanel = CreateObject("SettingsPanel", card.transform);
-            Stretch(settingsPanel.GetComponent<RectTransform>());
-            CreateText("SettingsTitle", settingsPanel.transform, "INPUT SETTINGS", 58, FontStyle.Bold,
-                new Vector2(0f, 465f), new Vector2(760f, 90f), new Color(0.87f, 0.97f, 1f));
-            CreateText("SettingsSubtitle", settingsPanel.transform,
-                "This input setting is shared by every game mode", 23, FontStyle.Normal,
-                new Vector2(0f, 390f), new Vector2(760f, 70f), new Color(0.48f, 0.76f, 0.83f));
-
-            var gyro = CreateButton("GyroButton", settingsPanel.transform, "GYRO",
-                new Vector2(-190f, 270f), new Vector2(340f, 100f), 27);
-            var touch = CreateButton("TouchButton", settingsPanel.transform, "TOUCH SCREEN",
-                new Vector2(190f, 270f), new Vector2(340f, 100f), 27);
-            var selectedInput = CreateText("SelectedInput", settingsPanel.transform, "GYRO", 34,
-                FontStyle.Bold, new Vector2(0f, 170f), new Vector2(760f, 60f), Color.white);
-
-            var gyroPanel = CreateObject("GyroPanel", settingsPanel.transform);
-            SetAnchoredRect(gyroPanel.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f),
-                new Vector2(780f, 350f), new Vector2(0f, -35f));
-            CreateText("SwingHint", gyroPanel.transform,
-                "Hold the phone naturally, then initialize the gyro", 24, FontStyle.Normal,
-                new Vector2(0f, 105f), new Vector2(740f, 70f), new Color(0.87f, 0.94f, 0.96f));
-            var sensorStatus = CreateText("SensorStatus", gyroPanel.transform,
-                "Preparing motion sensor...", 21, FontStyle.Normal,
-                new Vector2(0f, 25f), new Vector2(740f, 75f), new Color(0.48f, 0.76f, 0.83f));
-            var recalibrate = CreateButton("RecalibrateButton", gyroPanel.transform,
-                "INITIALIZE GYRO", new Vector2(0f, -90f), new Vector2(410f, 90f), 25);
-
-            var closeSettings = CreateButton("CloseSettingsButton", settingsPanel.transform,
-                "BACK", new Vector2(0f, -480f), new Vector2(360f, 90f), 27);
-            CreateText("SettingsFooter", settingsPanel.transform,
-                "Your choice is saved automatically", 20, FontStyle.Normal,
-                new Vector2(0f, -555f), new Vector2(760f, 50f), new Color(0.45f, 0.61f, 0.65f));
+            var mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(AudioMixerPath);
+            if (mixer == null)
+            {
+                throw new InvalidOperationException($"Audio mixer is missing: {AudioMixerPath}");
+            }
 
             controller.Configure(
-                mainPanel,
-                settingsPanel,
-                settings,
+                main.gameObject,
+                settings.gameObject,
+                howTo.gameObject,
+                openSettings,
+                openHowTo,
                 closeSettings,
+                closeHowTo,
                 infinite,
                 timeLimited,
                 start,
-                selectedGameMode,
-                gameModeStatus,
                 gyro,
                 touch,
                 recalibrate,
-                gyroPanel,
-                selectedInput,
-                sensorStatus);
-            settingsPanel.SetActive(false);
+                bgmSlider,
+                sfxSlider,
+                mixer);
 
-            EnsureEventSystem();
-            UpdateBuildSettings();
+            main.gameObject.SetActive(true);
+            settings.gameObject.SetActive(false);
+            howTo.gameObject.SetActive(false);
+            startUi.SetActive(true);
+            menuRoot.SetActive(false);
+
             EditorUtility.SetDirty(controller);
+            EditorUtility.SetDirty(settings.GetComponent<Image>());
+            EditorUtility.SetDirty(howTo.GetComponent<Image>());
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, MenuScenePath);
             AssetDatabase.SaveAssets();
-            Debug.Log("Tiny Fishing start menu built successfully.");
+            Debug.Log("Tiny Fishing start menu UI wiring completed without layout changes.");
         }
 
-        private static void EnsureEventSystem()
+        [MenuItem("Tools/Tiny Fishing/Remove Legacy Background Shade")]
+        public static void RemoveLegacyBackgroundShade()
         {
-            var eventSystem = Object.FindFirstObjectByType<EventSystem>();
-            if (eventSystem == null)
+            var scene = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
+            var menuRoot = RequireRoot(scene, "MenuUI");
+            var mainCanvas = RequireChild(menuRoot.transform, "MainCanvas");
+            var backgroundShade = mainCanvas.Find("BackgroundShade");
+            if (backgroundShade != null)
             {
-                var eventObject = new GameObject("EventSystem");
-                eventObject.AddComponent<EventSystem>();
-                eventObject.AddComponent<InputSystemUIInputModule>();
-                return;
+                Undo.DestroyObjectImmediate(backgroundShade.gameObject);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene, MenuScenePath);
             }
 
-            if (eventSystem.GetComponent<InputSystemUIInputModule>() == null)
+            AssetDatabase.SaveAssets();
+            Debug.Log("Legacy BackgroundShade removed.");
+        }
+
+        private static GameObject RequireRoot(Scene scene, string name)
+        {
+            var value = scene.GetRootGameObjects().FirstOrDefault(root => root.name == name);
+            return value != null
+                ? value
+                : throw new InvalidOperationException($"Root object '{name}' was not found.");
+        }
+
+        private static Transform RequireChild(Transform parent, string name)
+        {
+            var value = parent.Cast<Transform>().FirstOrDefault(child => child.name == name);
+            return value != null
+                ? value
+                : throw new InvalidOperationException($"Child '{name}' was not found below '{parent.name}'.");
+        }
+
+        private static Transform RequireDescendant(Transform parent, string name)
+        {
+            var value = parent.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(child => child != parent && child.name == name);
+            return value != null
+                ? value
+                : throw new InvalidOperationException($"Descendant '{name}' was not found below '{parent.name}'.");
+        }
+
+        private static T RequireComponent<T>(GameObject target) where T : Component
+        {
+            var component = target.GetComponent<T>();
+            return component != null
+                ? component
+                : throw new InvalidOperationException($"{target.name} requires {typeof(T).Name}.");
+        }
+
+        private static Button RequireButton(Transform target)
+        {
+            var image = RequireComponent<Image>(target.gameObject);
+            var button = target.GetComponent<Button>();
+            if (button == null)
             {
-                var oldModule = eventSystem.GetComponent<StandaloneInputModule>();
-                if (oldModule != null)
-                {
-                    Object.DestroyImmediate(oldModule);
-                }
-                eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                button = Undo.AddComponent<Button>(target.gameObject);
             }
-        }
 
-        private static void UpdateBuildSettings()
-        {
-            var remaining = EditorBuildSettings.scenes
-                .Where(scene => scene.path != MenuScenePath
-                    && scene.path != GameplayScenePath
-                    && scene.path != "Assets/Project/Scenes/Pond FPV.unity")
-                .ToList();
-            remaining.Insert(0, new EditorBuildSettingsScene(GameplayScenePath, true));
-            remaining.Insert(0, new EditorBuildSettingsScene(MenuScenePath, true));
-            EditorBuildSettings.scenes = remaining.ToArray();
-        }
-
-        private static GameObject CreateObject(string name, Transform parent)
-        {
-            var value = new GameObject(name, typeof(RectTransform));
-            value.transform.SetParent(parent, false);
-            return value;
-        }
-
-        private static Image CreatePanel(string name, Transform parent, Color color)
-        {
-            var value = CreateObject(name, parent);
-            var image = value.AddComponent<Image>();
-            image.color = color;
-            return image;
-        }
-
-        private static Text CreateText(string name, Transform parent, string value, int size,
-            FontStyle style, Vector2 position, Vector2 dimensions, Color color)
-        {
-            var textObject = CreateObject(name, parent);
-            var text = textObject.AddComponent<Text>();
-            text.text = value;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = size;
-            text.fontStyle = style;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            SetAnchoredRect(text.rectTransform, new Vector2(0.5f, 0.5f), dimensions, position);
-            return text;
-        }
-
-        private static Button CreateButton(string name, Transform parent, string label,
-            Vector2 position, Vector2 dimensions, int fontSize)
-        {
-            var buttonObject = CreateObject(name, parent);
-            var image = buttonObject.AddComponent<Image>();
-            image.color = new Color(0.16f, 0.21f, 0.27f, 1f);
-            var button = buttonObject.AddComponent<Button>();
             button.targetGraphic = image;
-            var colors = button.colors;
-            colors.highlightedColor = new Color(0.20f, 0.69f, 0.88f, 1f);
-            colors.pressedColor = new Color(0.10f, 0.48f, 0.66f, 1f);
-            button.colors = colors;
-            SetAnchoredRect(image.rectTransform, new Vector2(0.5f, 0.5f), dimensions, position);
-            CreateText("Label", buttonObject.transform, label, fontSize, FontStyle.Bold,
-                Vector2.zero, dimensions, Color.white);
+            EditorUtility.SetDirty(button);
             return button;
-        }
-
-        private static void Stretch(RectTransform rect)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-        }
-
-        private static void SetAnchoredRect(RectTransform rect, Vector2 anchor,
-            Vector2 size, Vector2 position)
-        {
-            rect.anchorMin = anchor;
-            rect.anchorMax = anchor;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
         }
     }
 }

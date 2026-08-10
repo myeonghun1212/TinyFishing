@@ -6747,7 +6747,7 @@ MonoBehaviour:
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1080, y: 1920}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0.5
+  m_MatchWidthOrHeight: 1
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -7982,7 +7982,7 @@ AudioSource:
   m_GameObject: {fileID: 1209684428}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -8079,7 +8079,7 @@ AudioSource:
   m_GameObject: {fileID: 1209684428}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -8176,7 +8176,7 @@ AudioSource:
   m_GameObject: {fileID: 1209684428}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -8305,7 +8305,7 @@ AudioSource:
   m_GameObject: {fileID: 1209684428}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -8402,7 +8402,7 @@ AudioSource:
   m_GameObject: {fileID: 1209684428}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -9994,7 +9994,7 @@ AudioSource:
   m_GameObject: {fileID: 1646124956}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -513452860767812948, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -10091,7 +10091,7 @@ AudioSource:
   m_GameObject: {fileID: 1646124956}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -513452860767812948, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -10191,6 +10191,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83f06c297907a0245b5e52e31066e630, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Audio.AmbientAudioManager
+  audioMixer: {fileID: 24100000, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   ambienceSource: {fileID: 1646124958}
   pondAmbienceClip: {fileID: 8300000, guid: 3513a482f3949094699af4e5c627e8a3, type: 3}
   bgmSource: {fileID: 1646124957}
@@ -10988,7 +10989,7 @@ AudioSource:
   m_GameObject: {fileID: 1802765098}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -2178925854783260240, guid: f800b8fa20919ba448b6dce84d1a8804, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0

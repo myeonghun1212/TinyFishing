@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace TinyFishing.Audio
 {
@@ -10,6 +11,9 @@ namespace TinyFishing.Audio
     //   to back and instead has quiet gaps between plays.
     public sealed class AmbientAudioManager : MonoBehaviour
     {
+        [Header("Mixer")]
+        [SerializeField] private AudioMixer audioMixer;
+
         [Header("Pond Ambience (loops)")]
         [SerializeField] private AudioSource ambienceSource;
         [SerializeField] private AudioClip pondAmbienceClip;
@@ -23,6 +27,11 @@ namespace TinyFishing.Audio
         [SerializeField] private bool randomDelayBeforeFirstTrack = true;
 
         private Coroutine bgmRoutine;
+
+        private void Awake()
+        {
+            TinyFishingAudioPreferences.ApplySaved(audioMixer);
+        }
 
         private void OnEnable()
         {
