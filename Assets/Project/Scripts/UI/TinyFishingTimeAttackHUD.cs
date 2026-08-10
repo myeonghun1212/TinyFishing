@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using NanFishing.Data;
 using TinyFishing.Core;
 using TMPro;
 using UnityEngine;
@@ -13,11 +15,12 @@ namespace TinyFishing.UI
     {
         [SerializeField] private TinyFishingTimeAttackController controller;
         [SerializeField] private Canvas targetCanvas;
+        [SerializeField] private GameObject BestScoreAlert;
 
         private TextMeshProUGUI timerText;
-        private GameObject resultPanel;
-        private TextMeshProUGUI finalScoreText;
-        private TextMeshProUGUI bestScoreText;
+        [SerializeField] private GameObject resultPanel;
+        [SerializeField] private TextMeshProUGUI finalScoreText;
+        [SerializeField] private TextMeshProUGUI sessionCatchText;
         private TMP_FontAsset presentationFont;
 
         private void Awake()
@@ -88,15 +91,28 @@ namespace TinyFishing.UI
                 : Color.white;
         }
 
-        private void HandleFinished(int score, int bestScore)
+        private void HandleFinished(int score, int bestScore, Dictionary<FishDefinition, int> sessionCatchCounts)
         {
             if (timerText != null)
             {
                 timerText.text = "00:00";
             }
 
-            finalScoreText.text = $"게임 기록  {score}";
-            bestScoreText.text = $"최고 점수  {bestScore}";
+            if(score >= bestScore)
+            {
+                BestScoreAlert.SetActive(true);
+            }
+
+            foreach (var kvp in sessionCatchCounts)
+            {
+                var fish = kvp.Key;
+                var count = kvp.Value;
+                if(fish == null || count <= 0) continue;
+                sessionCatchText.text += $"{fish.DisplayName} : {count}x\n";
+            }
+
+            finalScoreText.text = $"점수 : {score}";
+
             resultPanel.SetActive(true);
             resultPanel.transform.SetAsLastSibling();
         }
@@ -110,43 +126,6 @@ namespace TinyFishing.UI
             ConfigureRect(timerText.rectTransform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(0f, -42f), new Vector2(260f, 70f));
-
-            resultPanel = new GameObject("TimeAttackResult", typeof(RectTransform), typeof(Image));
-            resultPanel.transform.SetParent(targetCanvas.transform, false);
-            var panelRect = (RectTransform)resultPanel.transform;
-            panelRect.anchorMin = Vector2.zero;
-            panelRect.anchorMax = Vector2.one;
-            panelRect.offsetMin = Vector2.zero;
-            panelRect.offsetMax = Vector2.zero;
-            var panelImage = resultPanel.GetComponent<Image>();
-            panelImage.color = new Color(0.02f, 0.05f, 0.08f, 0.9f);
-            panelImage.raycastTarget = true;
-
-            var title = CreateText("Title", panelRect, 64f, FontStyles.Bold);
-            title.text = "타임 오버!";
-            ConfigureRect(title.rectTransform,
-                new Vector2(0.5f, 0.65f), new Vector2(0.5f, 0.65f),
-                Vector2.zero, new Vector2(600f, 90f));
-
-            finalScoreText = CreateText("FinalScore", panelRect, 44f, FontStyles.Bold);
-            ConfigureRect(finalScoreText.rectTransform,
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(700f, 70f));
-
-            bestScoreText = CreateText("BestScore", panelRect, 36f, FontStyles.Normal);
-            bestScoreText.color = new Color(1f, 0.82f, 0.25f);
-            ConfigureRect(bestScoreText.rectTransform,
-                new Vector2(0.5f, 0.4f), new Vector2(0.5f, 0.4f),
-                Vector2.zero, new Vector2(700f, 60f));
-
-            var returnText = CreateText("ReturnNotice", panelRect, 25f, FontStyles.Normal);
-            returnText.text = "잠시 후 시작 화면으로 돌아갑니다";
-            returnText.color = new Color(0.8f, 0.85f, 0.9f);
-            ConfigureRect(returnText.rectTransform,
-                new Vector2(0.5f, 0.25f), new Vector2(0.5f, 0.25f),
-                Vector2.zero, new Vector2(700f, 50f));
-
-            resultPanel.SetActive(false);
         }
 
         private TextMeshProUGUI CreateText(

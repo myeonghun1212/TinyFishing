@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: TinyFishingConfig_Infinite
   m_EditorClassIdentifier: Assembly-CSharp::TinyFishing.Data.TinyFishingConfig
   shakeThreshold: 4.72
+  gyroFullStrength: 15
   castCooldown: 0.6
   dragCastThreshold: 260
+  touchFastCastDuration: 0.15
+  touchSlowCastDuration: 1
   biteDelayRange: {x: 3, y: 5}
   fishBiteApproachSpeed: 2.2
   biteHookWindowSeconds: 0.51
@@ -23,7 +26,7 @@ MonoBehaviour:
   bobDipReturnTime: 0.18
   maximumTiltAngle: 28
   maximumPitchAngle: 24
-  dragRange: 220
+  dragRange: 200
   dragStartThreshold: 14
   tapMaxDuration: 0.35
   sensorSmoothing: 0.25

@@ -13,11 +13,16 @@ namespace TinyFishing.Input
     // never talks to sensors/touch directly.
     public interface ITinyFishingInput
     {
-        // Raised when the player shakes the phone (or presses the editor fallback key) to cast.
-        event Action CastPerformed;
+        // Raised when the player casts. The argument is the input's relative cast strength
+        // normalized to 0..1, regardless of whether it came from touch, gyro, or a fallback key.
+        event Action<float> CastPerformed;
 
         // Raised on each discrete tap/click while reeling.
         event Action ReelTapPerformed;
+
+        // Raised when the player attempts to hook a biting fish. In touch-screen mode,
+        // the first finger can hook even though it remains the primary aiming pointer.
+        event Action HookAttemptPerformed;
 
         // Current player horizontal aim direction in the -1..1 range (left/right), driven by phone
         // roll tilt, mouse/touch drag, or keyboard as an editor fallback.
@@ -32,6 +37,10 @@ namespace TinyFishing.Input
 
         // True while the player currently has the screen/mouse pressed down.
         bool IsPressed { get; }
+
+        // False while gameplay input is suspended by pause/game-over. UI input is handled
+        // separately by Unity's EventSystem and remains available.
+        bool IsInputEnabled { get; }
 
         // The active physical-input route. Lobby/settings UI can switch this later without
         // needing to know how the service handles the individual devices.
@@ -48,5 +57,10 @@ namespace TinyFishing.Input
 
         // Clears transient aim/pointer input without changing the gyro tilt baseline.
         void ResetAim();
+
+        // Suspends or resumes all gameplay input. Disabling preserves the current aim so
+        // rod/camera visuals can freeze in place; enabling recalibrates the current device
+        // attitude as the new neutral pose.
+        void SetInputEnabled(bool enabled);
     }
 }

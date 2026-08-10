@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using TinyFishing.Data;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace TinyFishing.Input
@@ -14,8 +16,9 @@ namespace TinyFishing.Input
     // Falls back to keyboard so the demo is fully playable in the Editor without a device attached.
     public sealed class TinyFishingInputService : MonoBehaviour, ITinyFishingInput
     {
-        public event Action CastPerformed;
+        public event Action<float> CastPerformed;
         public event Action ReelTapPerformed;
+        public event Action HookAttemptPerformed;
 
         [SerializeField] private TinyFishingConfig config;
 
@@ -50,11 +53,14 @@ namespace TinyFishing.Input
         private float directionAtPressStart;
         private float verticalAtPressStart;
         private bool dragCastTriggered;
+        private bool inputEnabled = true;
+        private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>();
 
         public float Direction { get; private set; }
         public float VerticalDirection { get; private set; }
         public bool IsReady { get; private set; }
         public bool IsPressed => pointerDown;
+        public bool IsInputEnabled => inputEnabled;
         public TinyFishingInputState InputState => inputState;
 
 
@@ -117,6 +123,30 @@ namespace TinyFishing.Input
             IsReady = true;
         }
 
+        public void SetInputEnabled(bool enabled)
+        {
+            if (inputEnabled == enabled)
+            {
+                return;
+            }
+
+            if (!enabled)
+            {
+                // Preserve Direction/VerticalDirection so consumers can freeze at the exact
+                // pose visible when pause/game-over began, while clearing held gestures/keys.
+                inputEnabled = false;
+                keyboardDirection = 0f;
+                keyboardVertical = 0f;
+                dragHorizontal = 0f;
+                dragVertical = 0f;
+                ResetPointerState();
+                return;
+            }
+
+            inputEnabled = true;
+            Recalibrate();
+        }
+
         private void OnEnable()
         {
             hasMotionSensors = false;
@@ -172,6 +202,11 @@ namespace TinyFishing.Input
 
         private void Update()
         {
+            if (!inputEnabled)
+            {
+                return;
+            }
+
 #if UNITY_EDITOR
             var attitudeSensor = AttitudeSensor.current;
             var accelerometer = Accelerometer.current;
@@ -218,9 +253,11 @@ namespace TinyFishing.Input
         // one-press reel input instead of competing with the sensor for rod direction.
         private void UpdateGyroReelInput()
         {
-            var touchPressed = Touchscreen.current != null && AnyTouchPressed();
-            var mousePressed = Mouse.current != null
+            var touchPressed = Touchscreen.current != null && AnyGameplayTouchPressed();
+            var mouseButtonPressed = Mouse.current != null
                 && (Mouse.current.leftButton.isPressed || Mouse.current.rightButton.isPressed);
+            var mousePressed = mouseButtonPressed
+                && (pointerDown || !IsPointerOverUi(Mouse.current.position.ReadValue()));
 
             if (!pointerDown)
             {
@@ -229,7 +266,8 @@ namespace TinyFishing.Input
                 {
                     foreach (var touch in Touchscreen.current.touches)
                     {
-                        if (touch.press.wasPressedThisFrame)
+                        if (touch.press.wasPressedThisFrame
+                            && !IsPointerOverUi(touch.position.ReadValue()))
                         {
                             touchStarted = true;
                             break;
@@ -238,10 +276,11 @@ namespace TinyFishing.Input
                 }
 
                 var mouseStarted = Mouse.current != null
-                    && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame);
+                    && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame)
+                    && !IsPointerOverUi(Mouse.current.position.ReadValue());
                 if (touchStarted || mouseStarted)
                 {
-                    ReelTapPerformed?.Invoke();
+                    TriggerReelTap();
                 }
             }
 
@@ -258,7 +297,7 @@ namespace TinyFishing.Input
             // Only route to the touch path when a touch is actually in play - many PCs/laptops
             // enumerate a Touchscreen device even when it's never used, and routing there
             // unconditionally would silently swallow all mouse input on those machines.
-            var touchActive = Touchscreen.current != null && (primaryTouchId >= 0 || AnyTouchPressed());
+            var touchActive = Touchscreen.current != null && (primaryTouchId >= 0 || AnyGameplayTouchPressed());
             if (touchActive)
             {
                 UpdateTouchInput();
@@ -268,11 +307,11 @@ namespace TinyFishing.Input
             UpdateMouseInput();
         }
 
-        private static bool AnyTouchPressed()
+        private bool AnyGameplayTouchPressed()
         {
             foreach (var touch in Touchscreen.current.touches)
             {
-                if (touch.press.isPressed)
+                if (touch.press.isPressed && !IsPointerOverUi(touch.position.ReadValue()))
                 {
                     return true;
                 }
@@ -310,9 +349,11 @@ namespace TinyFishing.Input
                 // regardless of whether the first finger is aiming (dragging) or just resting.
                 foreach (var touch in touches)
                 {
-                    if (touch.touchId.ReadValue() != primaryTouchId && touch.press.wasPressedThisFrame)
+                    if (touch.touchId.ReadValue() != primaryTouchId
+                        && touch.press.wasPressedThisFrame
+                        && !IsPointerOverUi(touch.position.ReadValue()))
                     {
-                        ReelTapPerformed?.Invoke();
+                        TriggerReelTap();
                         break;
                     }
                 }
@@ -322,10 +363,14 @@ namespace TinyFishing.Input
 
             foreach (var touch in touches)
             {
-                if (touch.press.isPressed)
+                if (touch.press.isPressed && !IsPointerOverUi(touch.position.ReadValue()))
                 {
                     primaryTouchId = touch.touchId.ReadValue();
                     BeginPress(touch.position.ReadValue());
+                    if (touch.press.wasPressedThisFrame)
+                    {
+                        HookAttemptPerformed?.Invoke();
+                    }
                     break;
                 }
             }
@@ -343,6 +388,10 @@ namespace TinyFishing.Input
 
             if (pressed && !pointerDown)
             {
+                if (IsPointerOverUi(currentPosition))
+                {
+                    return;
+                }
                 BeginPress(currentPosition);
             }
             else if (pressed && pointerDown)
@@ -391,7 +440,7 @@ namespace TinyFishing.Input
                     && Mathf.Abs(offset.y) >= DpiScaledPixels(config.dragCastThreshold))
                 {
                     dragCastTriggered = true;
-                    TriggerCast();
+                    TriggerCast(CalculateTouchCastStrength());
                 }
             }
         }
@@ -406,7 +455,7 @@ namespace TinyFishing.Input
                 var heldFor = Time.unscaledTime - pointerDownTime;
                 if (heldFor <= config.tapMaxDuration)
                 {
-                    ReelTapPerformed?.Invoke();
+                    TriggerReelTap();
                 }
             }
 
@@ -507,7 +556,7 @@ namespace TinyFishing.Input
             var jerk = (filteredAcceleration - previousFilteredAcceleration).magnitude / Mathf.Max(Time.deltaTime, 0.0001f);
             if (jerk >= config.shakeThreshold && castCooldownTimer <= 0f)
             {
-                TriggerCast();
+                TriggerCast(CalculateGyroCastStrength(jerk));
             }
         }
 
@@ -543,21 +592,49 @@ namespace TinyFishing.Input
 
             if (Keyboard.current.enterKey.wasPressedThisFrame && castCooldownTimer <= 0f)
             {
-                TriggerCast();
+                TriggerCast(0.5f);
             }
 
             // Testing shortcut: Space reels in, same as a tap/click.
             if (Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                ReelTapPerformed?.Invoke();
+                TriggerReelTap();
             }
 #endif
         }
 
-        private void TriggerCast()
+        // A reel gesture can also be used to hook during the bite window. Keeping the two
+        // semantic events separate lets the game manager process the gesture exactly once
+        // according to its current state.
+        private void TriggerReelTap()
+        {
+            ReelTapPerformed?.Invoke();
+            HookAttemptPerformed?.Invoke();
+        }
+
+        private float CalculateTouchCastStrength()
+        {
+            var elapsed = Mathf.Max(0f, Time.unscaledTime - pointerDownTime);
+            var configuredFastDuration = Mathf.Max(0f, config.touchFastCastDuration);
+            var configuredSlowDuration = Mathf.Max(0f, config.touchSlowCastDuration);
+            var fastDuration = Mathf.Min(configuredFastDuration, configuredSlowDuration);
+            var slowDuration = Mathf.Max(configuredFastDuration, configuredSlowDuration);
+            slowDuration = Mathf.Max(fastDuration + 0.0001f, slowDuration);
+
+            return 1f - Mathf.InverseLerp(fastDuration, slowDuration, elapsed);
+        }
+
+        private float CalculateGyroCastStrength(float sensorStrength)
+        {
+            var minimumStrength = Mathf.Max(0f, config.shakeThreshold);
+            var fullStrength = Mathf.Max(minimumStrength + 0.0001f, config.gyroFullStrength);
+            return Mathf.InverseLerp(minimumStrength, fullStrength, sensorStrength);
+        }
+
+        private void TriggerCast(float castStrength)
         {
             castCooldownTimer = config.castCooldown;
-            CastPerformed?.Invoke();
+            CastPerformed?.Invoke(Mathf.Clamp01(castStrength));
         }
 
         private void ResetPointerState()
@@ -566,6 +643,23 @@ namespace TinyFishing.Input
             isDragging = false;
             primaryTouchId = -1;
             dragCastTriggered = false;
+        }
+
+        private bool IsPointerOverUi(Vector2 screenPosition)
+        {
+            var eventSystem = EventSystem.current;
+            if (eventSystem == null)
+            {
+                return false;
+            }
+
+            var pointerEventData = new PointerEventData(eventSystem)
+            {
+                position = screenPosition
+            };
+            uiRaycastResults.Clear();
+            eventSystem.RaycastAll(pointerEventData, uiRaycastResults);
+            return uiRaycastResults.Count > 0;
         }
 
         // Config drag/tap distances (dragStartThreshold, dragRange, dragCastThreshold) are tuned

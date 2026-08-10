@@ -39,7 +39,7 @@ namespace TinyFishing.Fishing
         // so exact execution order between the two doesn't matter.
         private void LateUpdate()
         {
-            if (input == null)
+            if (input == null || !input.IsInputEnabled)
             {
                 return;
             }

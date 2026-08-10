@@ -15,6 +15,10 @@ namespace TinyFishing.Fishing
         [SerializeField] private Vector3 castDirection = new Vector3(-0.43f, 0f, 0.9f);
         [Tooltip("Initial launch speed of the bait (units/sec). Higher = casts further.")]
         [SerializeField] private float castStrength = 8f;
+        [Tooltip("Initial launch speed used for a minimum-power (0) cast.")]
+        [SerializeField] private float minCastStrength = 6f;
+        [Tooltip("Initial launch speed used for a full-power (1) cast.")]
+        [SerializeField] private float maxCastStrength = 10f;
         [Tooltip("Launch angle above horizontal, in degrees. 0 = flat/straight out, 90 = straight up.")]
         [SerializeField, Range(0f, 90f)] private float castAngle = 35f;
 
@@ -25,6 +29,8 @@ namespace TinyFishing.Fishing
         [SerializeField] private AudioClip splashClip;
         [Tooltip("Played the instant the fish takes the bait and the bob starts its dip (BeginDip).")]
         [SerializeField] private AudioClip biteSplashClip;
+
+        public float CastStrength { get => castStrength; set => castStrength = Mathf.Max(0f, value); }
 
         private Rigidbody body;
         private bool hasSplashed;
@@ -67,11 +73,15 @@ namespace TinyFishing.Fishing
             body.isKinematic = true;
         }
 
-        // Launches the bait from wherever it currently sits, using castDirection,
-        // castStrength and castAngle to build the initial velocity. Where it lands
-        // is purely a result of that velocity plus gravity - no random target point.
-        public void Launch()
+        // Launches the bait from wherever it currently sits. The normalized input strength
+        // selects an initial speed between minCastStrength and maxCastStrength; direction,
+        // angle, and gravity determine the resulting arc and landing point.
+        public void Launch(float normalizedCastStrength)
         {
+            var minimumStrength = Mathf.Min(minCastStrength, maxCastStrength);
+            var maximumStrength = Mathf.Max(minCastStrength, maxCastStrength);
+            CastStrength = Mathf.Lerp(minimumStrength, maximumStrength, Mathf.Clamp01(normalizedCastStrength));
+
             body.isKinematic = false;
             hasSplashed = false;
             IsInWater = false;

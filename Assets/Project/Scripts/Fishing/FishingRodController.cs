@@ -48,7 +48,7 @@ namespace TinyFishing.Fishing
         // actively reeling.
         private void LateUpdate()
         {
-            if (input == null || referenceCamera == null)
+            if (input == null || !input.IsInputEnabled || referenceCamera == null)
             {
                 return;
             }

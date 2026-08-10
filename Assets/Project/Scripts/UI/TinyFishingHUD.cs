@@ -25,6 +25,12 @@ namespace TinyFishing.UI
         [SerializeField] private TextMeshProUGUI fishCountText;
         [SerializeField] private TextMeshProUGUI bestText;
 
+        [Header("Pause")]
+        [SerializeField] private Button pauseButton;
+        [SerializeField] private GameObject pauseOverlay;
+        [SerializeField] private string pauseTitle = "일시정지";
+        [SerializeField] private string pauseResumeMessage = "화면을 눌러 계속";
+
         [Header("Gauge Visibility")]
         [Tooltip("CanvasGroup wrapping the gauge track/progress bar. Hidden (alpha 0) until a bite is successfully hooked, then fades in as Reeling starts.")]
         [SerializeField] private CanvasGroup gaugeCanvasGroup;
@@ -41,6 +47,8 @@ namespace TinyFishing.UI
         [SerializeField] private Sprite fishDangerSprite;
         [SerializeField] private Color alignedColor = new Color(0.30f, 0.85f, 0.35f);
         [SerializeField] private Color misalignedColor = new Color(0.92f, 0.20f, 0.20f);
+        [SerializeField] private Image alignedImage;
+        [SerializeField] private Image misalignedImage;
         [SerializeField] private AudioSource splashAudioSource;
         [SerializeField] private AudioClip splashClip;
 
@@ -104,6 +112,13 @@ private Color progressFillNormalColor = Color.white;
 
 private void Awake()
         {
+            if (gameManager == null)
+            {
+                gameManager = GetComponent<TinyFishingGameManager>();
+            }
+
+            EnsurePauseUi();
+
             if (gaugeTrack != null)
             {
                 halfTrackWidth = gaugeTrack.rect.width * 0.5f;
@@ -155,6 +170,8 @@ progressFillNormalColor = progressFill.color;
             gameManager.ScoreChanged += HandleScoreChanged;
             gameManager.ReelingUpdated += HandleReelingUpdated;
             gameManager.RoundResolved += HandleRoundResolved;
+            gameManager.PauseChanged += HandlePauseChanged;
+            SetPauseVisible(gameManager.IsPaused);
         }
 
         private void OnDisable()
@@ -168,6 +185,124 @@ progressFillNormalColor = progressFill.color;
             gameManager.ScoreChanged -= HandleScoreChanged;
             gameManager.ReelingUpdated -= HandleReelingUpdated;
             gameManager.RoundResolved -= HandleRoundResolved;
+            gameManager.PauseChanged -= HandlePauseChanged;
+        }
+
+        private void EnsurePauseUi()
+        {
+            if (pauseButton == null)
+            {
+                var pauseIcon = GameObject.Find("Pause Icon");
+                if (pauseIcon != null)
+                {
+                    pauseButton = pauseIcon.GetComponent<Button>();
+                    if (pauseButton == null)
+                    {
+                        pauseButton = pauseIcon.AddComponent<Button>();
+                    }
+
+                    pauseButton.targetGraphic = pauseIcon.GetComponent<Graphic>();
+                }
+            }
+
+            if (pauseButton != null && gameManager != null)
+            {
+                pauseButton.onClick.RemoveListener(gameManager.TogglePause);
+                pauseButton.onClick.AddListener(gameManager.TogglePause);
+            }
+
+            if (pauseOverlay == null && pauseButton != null)
+            {
+                pauseOverlay = CreatePauseOverlay(pauseButton.transform.parent);
+            }
+
+            if (pauseOverlay != null && gameManager != null)
+            {
+                var overlayButton = pauseOverlay.GetComponent<Button>();
+                if (overlayButton == null)
+                {
+                    overlayButton = pauseOverlay.AddComponent<Button>();
+                    overlayButton.targetGraphic = pauseOverlay.GetComponent<Graphic>();
+                }
+
+                overlayButton.onClick.RemoveListener(gameManager.ResumeGame);
+                overlayButton.onClick.AddListener(gameManager.ResumeGame);
+                pauseOverlay.SetActive(false);
+            }
+        }
+
+        private GameObject CreatePauseOverlay(Transform parent)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+
+            var overlay = new GameObject(
+                "Pause Overlay",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(Button));
+            overlay.transform.SetParent(parent, false);
+            overlay.transform.SetAsLastSibling();
+
+            var overlayRect = (RectTransform)overlay.transform;
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+
+            var overlayImage = overlay.GetComponent<Image>();
+            overlayImage.color = new Color(0f, 0f, 0f, 0.62f);
+            overlayImage.raycastTarget = true;
+
+            var overlayButton = overlay.GetComponent<Button>();
+            overlayButton.targetGraphic = overlayImage;
+            overlayButton.transition = Selectable.Transition.None;
+
+            var labelObject = new GameObject(
+                "Pause Label",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(overlay.transform, false);
+
+            var labelRect = (RectTransform)labelObject.transform;
+            labelRect.anchorMin = new Vector2(0.1f, 0.1f);
+            labelRect.anchorMax = new Vector2(0.9f, 0.9f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            var label = labelObject.GetComponent<TextMeshProUGUI>();
+            if (instructionText != null)
+            {
+                label.font = instructionText.font;
+            }
+            label.text = $"{pauseTitle}\n<size=60%>{pauseResumeMessage}</size>";
+            label.fontSize = 54f;
+            label.color = Color.white;
+            label.alignment = TextAlignmentOptions.Center;
+            label.raycastTarget = false;
+
+            return overlay;
+        }
+
+        private void HandlePauseChanged(bool paused)
+        {
+            SetPauseVisible(paused);
+        }
+
+        private void SetPauseVisible(bool visible)
+        {
+            if (pauseOverlay != null)
+            {
+                pauseOverlay.SetActive(visible);
+                if (visible)
+                {
+                    pauseOverlay.transform.SetAsLastSibling();
+                }
+            }
         }
 
         // Called by the HUD recalibration button. The current phone attitude becomes the
@@ -228,6 +363,8 @@ private void HandleStateChanged(TinyFishingState state)
                     instructionText.text = readyToCastMessage;
                     SetGaugeVisible(false, instant: true);
                     feedbackText.text = string.Empty;
+                    alignedImage.enabled = false;
+                    misalignedImage.enabled = false;
                     if (caughtFishNameText != null)
                     {
                         caughtFishNameText.text = string.Empty;
@@ -409,10 +546,13 @@ private void HandleReelingUpdated(float playerDirection, float fishDirection, bo
             fishMarker.localScale = finalScale;
         }
 
-private void HandleRoundResolved(bool caught, FishDefinition fish)
+        private void HandleRoundResolved(bool caught, FishDefinition fish)
         {
             feedbackText.color = caught ? alignedColor : misalignedColor;
             feedbackText.text = caught ? caughtMessage : gotAwayMessage;
+
+            alignedImage.enabled = caught;
+            misalignedImage.enabled = !caught;
 
             if (caughtFishModelInstance != null)
             {

@@ -7,6 +7,7 @@ using TinyFishing.Input;
 using UnityEngine;
 using NanFishing.Data;
 using UnityEngine.Serialization;
+using UnityEngine.SceneManagement;
 
 namespace TinyFishing.Core
 {
@@ -24,6 +25,7 @@ namespace TinyFishing.Core
         public event Action<int, int, int> ScoreChanged; // score, fishCaught, bestScore
         public event Action<float, float, bool, float> ReelingUpdated; // playerDir, fishDir, aligned, progress
         public event Action<bool, FishDefinition> RoundResolved; // caught?, the fish that was hooked (null if none)
+        public event Action<bool> PauseChanged;
 
         [Header("Game Mode Configs")]
         [FormerlySerializedAs("config")]
@@ -63,7 +65,12 @@ namespace TinyFishing.Core
         private int fishCaught;
         private int bestScore;
         private bool sessionActive = true;
+        private bool isPaused;
+        private bool ownsGlobalPause;
+        private float timeScaleBeforePause = 1f;
+        private bool audioPauseBeforePause;
         private TinyFishingConfig config;
+        [SerializeField] private string startSceneName;
 
         public TinyFishingState State { get; private set; } = TinyFishingState.ReadyToCast;
         public TinyFishingConfig Config => config;
@@ -73,6 +80,10 @@ namespace TinyFishing.Core
         public int FishCaught => fishCaught;
         public int BestScore => bestScore;
         public bool IsSessionActive => sessionActive;
+        public bool IsPaused => isPaused;
+        public Dictionary<FishDefinition, int> SessionCatchCounts => sessionCatchCounts;
+
+        public string StartSceneName => startSceneName;
 
         private void Awake()
         {
@@ -116,16 +127,22 @@ namespace TinyFishing.Core
             }
             input.CastPerformed += HandleCastPerformed;
             input.ReelTapPerformed += HandleReelTap;
+            input.HookAttemptPerformed += HandleHookAttempt;
         }
 
         private void OnDisable()
         {
-            if (input == null)
+            if (input != null)
             {
-                return;
+                input.CastPerformed -= HandleCastPerformed;
+                input.ReelTapPerformed -= HandleReelTap;
+                input.HookAttemptPerformed -= HandleHookAttempt;
             }
-            input.CastPerformed -= HandleCastPerformed;
-            input.ReelTapPerformed -= HandleReelTap;
+
+            // Time.timeScale and AudioListener.pause are global. Never leave them altered
+            // when this manager is disabled during a scene transition or domain reload.
+            RestoreGlobalPauseState();
+            isPaused = false;
         }
 
         private void Start()
@@ -137,7 +154,7 @@ namespace TinyFishing.Core
 
         private void Update()
         {
-            if (!sessionActive || State != TinyFishingState.Reeling)
+            if (!sessionActive || isPaused || State != TinyFishingState.Reeling)
             {
                 return;
             }
@@ -162,21 +179,22 @@ namespace TinyFishing.Core
             }
         }
 
-        private void HandleCastPerformed()
+        private void HandleCastPerformed(float castStrength)
         {
-            if (!sessionActive || State != TinyFishingState.ReadyToCast)
+            if (!sessionActive || isPaused || State != TinyFishingState.ReadyToCast)
             {
                 return;
             }
-            activeRoutine = StartCoroutine(CastAndBiteRoutine());
+
+            activeRoutine = StartCoroutine(CastAndBiteRoutine(Mathf.Clamp01(castStrength)));
         }
 
-        private IEnumerator CastAndBiteRoutine()
+        private IEnumerator CastAndBiteRoutine(float castStrength)
         {
             SetState(TinyFishingState.WaitingForBite);
             if (bobController != null)
             {
-                bobController.Launch();
+                bobController.Launch(castStrength);
             }
             var delay = UnityEngine.Random.Range(config.biteDelayRange.x, config.biteDelayRange.y);
             yield return new WaitForSeconds(delay);
@@ -207,8 +225,8 @@ namespace TinyFishing.Core
                 }
             }
 
-            // Bob dips and the hook window opens. A reel tap while State is Biting and
-            // hookWindowOpen is true (handled in HandleReelTap) hooks the fish and starts
+            // Bob dips and the hook window opens. A hook attempt while State is Biting and
+            // hookWindowOpen is true (handled in HandleHookAttempt) hooks the fish and starts
             // Reeling; if the window elapses first, the loop below falls through to a miss.
             SetState(TinyFishingState.Biting);
             if (bobController != null)
@@ -226,7 +244,7 @@ namespace TinyFishing.Core
             }
 
             // Still Biting after the loop means nobody hooked it in time - a successful
-            // hook (HandleReelTap) already moved State to Reeling and exited the loop above.
+            // hook (HandleHookAttempt) already moved State to Reeling and exited the loop above.
             if (State == TinyFishingState.Biting)
             {
                 hookWindowOpen = false;
@@ -238,7 +256,7 @@ namespace TinyFishing.Core
 
         private void HandleReelTap()
         {
-            if (!sessionActive)
+            if (!sessionActive || isPaused)
             {
                 return;
             }
@@ -257,15 +275,6 @@ namespace TinyFishing.Core
                     AbortBite();
                     break;
 
-                case TinyFishingState.Biting:
-                    if (!hookWindowOpen)
-                    {
-                        return;
-                    }
-                    hookWindowOpen = false;
-                    BeginReelingAfterHook();
-                    break;
-
                 case TinyFishingState.Reeling:
                     var goodTap = reelModel.ApplyTap(input.Direction, fish.Direction, input.VerticalDirection);
                     PlayReelTapSfx(goodTap);
@@ -273,6 +282,17 @@ namespace TinyFishing.Core
                         reelModel.IsAligned(input.Direction, fish.Direction), reelModel.Progress);
                     break;
             }
+        }
+
+        private void HandleHookAttempt()
+        {
+            if (!sessionActive || isPaused || State != TinyFishingState.Biting || !hookWindowOpen)
+            {
+                return;
+            }
+
+            hookWindowOpen = false;
+            BeginReelingAfterHook();
         }
 
         // Cancels the in-flight cast/bite coroutine (if any) and resolves the round as a
@@ -310,7 +330,7 @@ namespace TinyFishing.Core
             StartCoroutine(ReturnToCastingRoutine());
         }
 
-        // Called from HandleReelTap when a tap lands inside the Biting hook window -
+        // Called from HandleHookAttempt when an input lands inside the Biting hook window -
         // the fish is hooked, so hand it off to the real reeling minigame.
         private void BeginReelingAfterHook()
         {
@@ -494,7 +514,13 @@ namespace TinyFishing.Core
                 return;
             }
 
+            if (isPaused)
+            {
+                ExitPause(resumeInput: false);
+            }
+
             sessionActive = false;
+            input.SetInputEnabled(false);
             StopAllCoroutines();
             activeRoutine = null;
             hookWindowOpen = false;
@@ -512,6 +538,87 @@ namespace TinyFishing.Core
             SetState(TinyFishingState.GameOver);
         }
 
+        public void PauseGame()
+        {
+            if (isPaused || !sessionActive)
+            {
+                return;
+            }
+
+            isPaused = true;
+            timeScaleBeforePause = Time.timeScale;
+            audioPauseBeforePause = AudioListener.pause;
+            ownsGlobalPause = true;
+
+            input.SetInputEnabled(false);
+            Time.timeScale = 0f;
+            AudioListener.pause = true;
+            PauseChanged?.Invoke(true);
+        }
+
+        public void ResumeGame()
+        {
+            if (!isPaused)
+            {
+                return;
+            }
+
+            ExitPause(resumeInput: sessionActive);
+        }
+
+        public void TogglePause()
+        {
+            if (isPaused)
+            {
+                ResumeGame();
+            }
+            else
+            {
+                PauseGame();
+            }
+        }
+
+        private void ExitPause(bool resumeInput)
+        {
+            isPaused = false;
+            RestoreGlobalPauseState();
+
+            if (resumeInput)
+            {
+                input.SetInputEnabled(true);
+            }
+
+            PauseChanged?.Invoke(false);
+        }
+
+        private void RestoreGlobalPauseState()
+        {
+            if (!ownsGlobalPause)
+            {
+                return;
+            }
+
+            Time.timeScale = timeScaleBeforePause;
+            AudioListener.pause = audioPauseBeforePause;
+            ownsGlobalPause = false;
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+            {
+                PauseGame();
+            }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                PauseGame();
+            }
+        }
+
         private void SetState(TinyFishingState next)
         {
             State = next;
@@ -521,6 +628,28 @@ namespace TinyFishing.Core
             }
             StateChanged?.Invoke(next);
         }
+
+        public void RestartGame()
+        {
+            PrepareForSceneChange();
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        public void ReturnToStart()
+        {
+            PrepareForSceneChange();
+            SceneManager.LoadScene(startSceneName);
+        }
+
+        private void PrepareForSceneChange()
+        {
+            if (isPaused)
+            {
+                ExitPause(resumeInput: false);
+            }
+            input?.SetInputEnabled(false);
+        }
+
     }
 }
 

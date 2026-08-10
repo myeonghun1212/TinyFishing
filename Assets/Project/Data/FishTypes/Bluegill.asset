@@ -19,7 +19,7 @@ MonoBehaviour:
   resistance: 0.3
   maxHealth: 350
   progressDecayRate: 0.05
-  moveSpeed: 0.3
-  directionChangeInterval: 2.5
+  moveSpeed: 0.5
+  directionChangeInterval: 2
   color: {r: 0.55, g: 0.75, b: 0.9, a: 1}
   prefab: {fileID: 5039138084969767215, guid: dfa8d75dc6662a84d9a6a63cb148046c, type: 3}

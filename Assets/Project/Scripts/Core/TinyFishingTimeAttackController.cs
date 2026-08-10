@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using NanFishing.Data;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -12,12 +14,11 @@ namespace TinyFishing.Core
     public sealed class TinyFishingTimeAttackController : MonoBehaviour
     {
         public event Action<float> TimeChanged;
-        public event Action<int, int> Finished; // final score, best score
+        public event Action<int, int, Dictionary<FishDefinition, int>> Finished; // final score, best score, session catch counts
 
         [SerializeField] private TinyFishingGameManager gameManager;
         [SerializeField, Min(1f)] private float durationSeconds = 60f;
-        [SerializeField, Min(0f)] private float resultDisplaySeconds = 4f;
-        [SerializeField] private string startSceneName = "Pond Start Menu";
+        [SerializeField, Min(0f)] private float resultDisplaySeconds = 30f;
         [SerializeField] private AudioSource timeUpAudioSource;
         [SerializeField] private AudioClip timeUpClip;
 
@@ -51,7 +52,7 @@ namespace TinyFishing.Core
 
         private void Update()
         {
-            if (!running)
+            if (!running || gameManager == null || gameManager.IsPaused)
             {
                 return;
             }
@@ -65,12 +66,12 @@ namespace TinyFishing.Core
             }
         }
 
-private void Finish()
+        private void Finish()
         {
             running = false;
             gameManager.EndSession();
             PlayTimeUpSfx();
-            Finished?.Invoke(gameManager.Score, gameManager.BestScore);
+            Finished?.Invoke(gameManager.Score, gameManager.BestScore, gameManager.SessionCatchCounts);
             StartCoroutine(ReturnToStartRoutine());
         }
 
@@ -85,7 +86,6 @@ private void Finish()
             timeUpAudioSource.clip = timeUpClip;
             timeUpAudioSource.Play();
         }
-
         private IEnumerator ReturnToStartRoutine()
         {
             if (resultDisplaySeconds > 0f)
@@ -93,7 +93,7 @@ private void Finish()
                 yield return new WaitForSecondsRealtime(resultDisplaySeconds);
             }
 
-            SceneManager.LoadScene(startSceneName);
+            SceneManager.LoadScene(gameManager.StartSceneName);
         }
     }
 }

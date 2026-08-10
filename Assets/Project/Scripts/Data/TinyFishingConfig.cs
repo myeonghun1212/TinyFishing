@@ -9,10 +9,16 @@ namespace TinyFishing.Data
         [Header("Casting")]
         [Tooltip("Minimum acceleration spike (m/s^2 change) required to register a cast shake.")]
         public float shakeThreshold = 2.2f;
+        [Tooltip("Acceleration-change strength that maps to a full-power gyro cast. Values between Shake Threshold and this value map linearly to 0..1 cast strength.")]
+        public float gyroFullStrength = 15f;
         [Tooltip("Seconds to wait before another shake can trigger a cast.")]
         public float castCooldown = 0.6f;
         [Tooltip("Vertical drag distance (pixels), on top of the shake gesture, that also triggers a cast.")]
         public float dragCastThreshold = 260f;
+        [Tooltip("Seconds or less to reach the drag-cast threshold for a full-power touch cast.")]
+        [Min(0f)] public float touchFastCastDuration = 0.15f;
+        [Tooltip("Seconds or more to reach the drag-cast threshold for a minimum-power touch cast.")]
+        [Min(0f)] public float touchSlowCastDuration = 1f;
 
         [Header("Bite Discovery")]
         [Tooltip("Min/max seconds after casting before a fish discovers the bait and breaks off from wandering to start swimming in toward the bob. A random value in this range is rolled on every cast - lower it to make bites come faster, raise it for a longer wait.")]
@@ -36,7 +42,7 @@ namespace TinyFishing.Data
         [Tooltip("Phone pitch angle (degrees) that maps to full -1..1 vertical direction range.")]
         public float maximumPitchAngle = 24f;
         [Tooltip("Mouse/touch drag distance (pixels) that maps to the full -1..1 direction range on either axis.")]
-        public float dragRange = 220f;
+        public float dragRange = 240f;
         [Tooltip("Pointer movement (pixels) beyond which a press is treated as a drag instead of a reel tap.")]
         public float dragStartThreshold = 14f;
         [Tooltip("Max seconds a press can last and still count as a reel tap rather than a drag.")]
