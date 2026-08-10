@@ -125,7 +125,7 @@ namespace TinyFishing.UI
             timerText = CreateText("TimeAttackTimer", targetCanvas.transform, 52f, FontStyles.Bold);
             ConfigureRect(timerText.rectTransform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -42f), new Vector2(260f, 70f));
+                new Vector2(0f, -52f), new Vector2(260f, 70f));
         }
 
         private TextMeshProUGUI CreateText(
