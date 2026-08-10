@@ -64,7 +64,7 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Scale: 0.37
-    - _ShoreFoamAmount: 0.657
+    - _ShoreFoamAmount: 0.394
     - _ShoreFoamSpeed: 0.0007
     - _ShoreFoamTreshhold: 0.62
     - _Test: 1
