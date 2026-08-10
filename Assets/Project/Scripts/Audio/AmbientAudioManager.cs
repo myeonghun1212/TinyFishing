@@ -74,6 +74,7 @@ namespace TinyFishing.Audio
 
             while (true)
             {
+                Random.InitState(System.DateTime.Now.Millisecond);
                 var clip = bgmPlaylist[Random.Range(0, bgmPlaylist.Length)];
                 if (clip != null)
                 {

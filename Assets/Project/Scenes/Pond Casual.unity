@@ -9967,7 +9967,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Bluegill
+  m_text: Gold  Fish
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
   m_sharedMaterial: {fileID: 8578340521980235607, guid: c6c224ea7fd79f543bab7cd59c021354, type: 2}
@@ -10064,7 +10064,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -100}
-  m_SizeDelta: {x: 600, y: 308.4}
+  m_SizeDelta: {x: 700, y: 308.4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1333805340
 PrefabInstance:
