@@ -11276,6 +11276,7 @@ MonoBehaviour:
   bgmPlaylist:
   - {fileID: 8300000, guid: 7d21c4f168aa8bf4caf1750869cc14b5, type: 3}
   - {fileID: 8300000, guid: 42a28645e4b0c864fba3701dbe80a822, type: 3}
+  - {fileID: 8300000, guid: 8961965d44f533c4e945d8905ece9989, type: 3}
   bgmIntervalRange: {x: 20.12, y: 50.9}
   randomDelayBeforeFirstTrack: 1
 --- !u!4 &1646124960
