@@ -17,7 +17,7 @@ MonoBehaviour:
   rarity: 2
   baseScore: 200
   resistance: 1.6
-  maxHealth: 300
+  maxHealth: 250
   progressDecayRate: 0.122
   moveSpeed: 0.3
   directionChangeInterval: 2

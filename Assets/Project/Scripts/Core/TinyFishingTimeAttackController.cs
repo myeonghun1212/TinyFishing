@@ -18,6 +18,8 @@ namespace TinyFishing.Core
         [SerializeField, Min(1f)] private float durationSeconds = 60f;
         [SerializeField, Min(0f)] private float resultDisplaySeconds = 4f;
         [SerializeField] private string startSceneName = "Pond Start Menu";
+        [SerializeField] private AudioSource timeUpAudioSource;
+        [SerializeField] private AudioClip timeUpClip;
 
         private float remainingSeconds;
         private bool running;
@@ -63,12 +65,25 @@ namespace TinyFishing.Core
             }
         }
 
-        private void Finish()
+private void Finish()
         {
             running = false;
             gameManager.EndSession();
+            PlayTimeUpSfx();
             Finished?.Invoke(gameManager.Score, gameManager.BestScore);
             StartCoroutine(ReturnToStartRoutine());
+        }
+
+        private void PlayTimeUpSfx()
+        {
+            if (timeUpAudioSource == null || timeUpClip == null)
+            {
+                return;
+            }
+
+            timeUpAudioSource.Stop();
+            timeUpAudioSource.clip = timeUpClip;
+            timeUpAudioSource.Play();
         }
 
         private IEnumerator ReturnToStartRoutine()

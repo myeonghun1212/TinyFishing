@@ -151,7 +151,7 @@ Material:
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _Density: 0.008
+    - _Density: 0.012
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -216,7 +216,7 @@ Material:
     - _Main_Light_Self_Shadow_Remap_Max: 0.8
     - _Main_Light_Self_Shadow_Remap_Min: 0.2
     - _Main_Light_Self_Shadow_Steps: 4
-    - _Max_Distance: 13.32
+    - _Max_Distance: 13.6
     - _Metallic: 0
     - _OUTPUT: 0
     - _OcclusionStrength: 1

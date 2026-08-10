@@ -16,10 +16,10 @@ MonoBehaviour:
   displayName: Gold Fish
   rarity: 4
   baseScore: 750
-  resistance: 1
-  maxHealth: 400
-  progressDecayRate: 0.148
-  moveSpeed: 1.61
+  resistance: 0.81
+  maxHealth: 200
+  progressDecayRate: 0.127
+  moveSpeed: 1.71
   directionChangeInterval: 0.82
   color: {r: 1, g: 0.75, b: 0.15, a: 1}
   prefab: {fileID: 8085441241316860872, guid: 837f01b050a581d428b333caf22a8557, type: 3}

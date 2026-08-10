@@ -15,7 +15,7 @@ MonoBehaviour:
   fishId: trout
   displayName: Trout
   rarity: 3
-  baseScore: 350
+  baseScore: 400
   resistance: 0.7
   maxHealth: 200
   progressDecayRate: 0.05

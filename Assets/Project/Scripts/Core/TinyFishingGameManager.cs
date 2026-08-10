@@ -43,6 +43,10 @@ namespace TinyFishing.Core
         [SerializeField] private AudioClip badReelClip;
         [SerializeField] private AudioSource catchAudioSource;
         [SerializeField] private AudioClip successfulCatchClip;
+        [SerializeField] private AudioClip unsuccessfulCatchClip;
+        [Tooltip("Looping AudioSource dedicated to the rope-tighten sfx - separate from the other sources so it can loop for the whole Reeling state without being stopped by tap/catch sfx.")]
+        [SerializeField] private AudioSource ropeAudioSource;
+        [SerializeField] private AudioClip ropeTightenClip;
 
         private ITinyFishingInput input;
         private FishDriftDriver fish;
@@ -301,6 +305,7 @@ namespace TinyFishing.Core
             bobDipped = false;
 
             SetState(TinyFishingState.RoundResult);
+            PlayMissSfx();
             RoundResolved?.Invoke(false, null);
             StartCoroutine(ReturnToCastingRoutine());
         }
@@ -323,6 +328,29 @@ namespace TinyFishing.Core
             reelModel.Reset(currentFish != null ? currentFish.MaxHealth : 100f,
                 currentFish != null ? currentFish.ProgressDecayRate : config.fallbackProgressDecayRate);
             SetState(TinyFishingState.Reeling);
+            PlayRopeLoop();
+        }
+
+        private void PlayRopeLoop()
+        {
+            if (ropeAudioSource == null || ropeTightenClip == null)
+            {
+                return;
+            }
+
+            ropeAudioSource.clip = ropeTightenClip;
+            ropeAudioSource.loop = true;
+            ropeAudioSource.Play();
+        }
+
+        private void StopRopeLoop()
+        {
+            if (ropeAudioSource == null)
+            {
+                return;
+            }
+
+            ropeAudioSource.Stop();
         }
 
         private void PlayReelTapSfx(bool goodTap)
@@ -359,9 +387,24 @@ namespace TinyFishing.Core
             catchAudioSource.Play();
         }
 
+        private void PlayMissSfx()
+        {
+            if (catchAudioSource == null || unsuccessfulCatchClip == null)
+            {
+                return;
+            }
+
+            // Same AudioSource as the successful-catch sfx - a round can only resolve one
+            // way, so there's never a need for the two to play at once.
+            catchAudioSource.Stop();
+            catchAudioSource.clip = unsuccessfulCatchClip;
+            catchAudioSource.Play();
+        }
+
         private void ResolveRound(bool caught)
         {
             SetState(TinyFishingState.RoundResult);
+            StopRopeLoop();
             bobController?.EndReelHold();
 
             if (biteAgent != null)
@@ -394,6 +437,10 @@ namespace TinyFishing.Core
                     PlayerPrefs.Save();
                 }
                 ScoreChanged?.Invoke(score, fishCaught, bestScore);
+            }
+            else
+            {
+                PlayMissSfx();
             }
 
             RoundResolved?.Invoke(caught, caught ? currentFish : null);
@@ -459,6 +506,7 @@ namespace TinyFishing.Core
             }
 
             bobDipped = false;
+            StopRopeLoop();
             bobController?.EndReelHold();
             bobController?.ResetToRest();
             SetState(TinyFishingState.GameOver);

@@ -20,6 +20,8 @@ namespace TinyFishing.UI
 
         [Header("Top Bar")]
         [SerializeField] private TextMeshProUGUI scoreText;
+        [Tooltip("Separate GameObject for the score's numeric value, so its size can be tuned independently of the label.")]
+        [SerializeField] private TextMeshProUGUI scoreValueText;
         [SerializeField] private TextMeshProUGUI fishCountText;
         [SerializeField] private TextMeshProUGUI bestText;
 
@@ -287,7 +289,11 @@ private void HandleStateChanged(TinyFishingState state)
 
         private void HandleScoreChanged(int score, int fishCaught, int bestScore)
         {
-            scoreText.text = $"{scoreLabel}\n{score}";
+            scoreText.text = scoreLabel;
+            if (scoreValueText != null)
+            {
+                scoreValueText.text = score.ToString();
+            }
             fishCountText.text = $"x{fishCaught}";
             bestText.text = $"{bestLabel}: {bestScore}";
         }
