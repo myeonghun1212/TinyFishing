@@ -117,7 +117,8 @@ private void Awake()
                 gameManager = GetComponent<TinyFishingGameManager>();
             }
 
-            EnsurePauseUi();
+// EnsurePauseUi() intentionally disabled: TinyFishingPauseSettings now owns the
+            // Pause Icon click, pause/resume, and pause-overlay behavior for this scene.rePauseUi();
 
             if (gaugeTrack != null)
             {
