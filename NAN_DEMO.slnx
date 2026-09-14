@@ -7,10 +7,14 @@
   <Project Path="MK.MeshUtility.csproj" />
   <Project Path="FronkonGames.Artistic.TiltShift.csproj" />
   <Project Path="MK.Toon.URP.Editor.csproj" />
+  <Project Path="Nan.Fishing.Editor.csproj" />
   <Project Path="FronkonGames.Artistic.TiltShift.Editor.csproj" />
+  <Project Path="Nan.Fishing.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="MK.RampCreator.csproj" />
   <Project Path="MK.MKTextureChannelPacker.csproj" />
   <Project Path="MK.Toon.URP.csproj" />
+  <Project Path="Nan.Fishing.PlayModeTests.csproj" />
   <Project Path="Boxophobic.SkyboxCubemapExtended.Editor.csproj" />
+  <Project Path="Nan.Fishing.EditModeTests.csproj" />
 </Solution>

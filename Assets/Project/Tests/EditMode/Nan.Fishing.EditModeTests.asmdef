@@ -1,0 +1,7 @@
+{
+  "name": "Nan.Fishing.EditModeTests",
+  "rootNamespace": "Nan.Tests",
+  "references": ["Nan.Fishing"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

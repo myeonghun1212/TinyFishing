@@ -1,0 +1,6 @@
+{
+  "name": "Nan.Fishing.PlayModeTests",
+  "rootNamespace": "Nan.Tests",
+  "references": ["Nan.Fishing"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

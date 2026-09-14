@@ -1,0 +1,5 @@
+{
+  "name": "Nan.Fishing",
+  "rootNamespace": "Nan",
+  "references": ["Unity.InputSystem", "Unity.ugui"]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Nan.Fishing.Editor",
+  "rootNamespace": "Nan.Editor",
+  "references": ["Nan.Fishing"],
+  "includePlatforms": ["Editor"]
+}
