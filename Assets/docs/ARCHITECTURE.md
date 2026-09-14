@@ -62,3 +62,5 @@ Assets/
     Input/
     Fishing/
     UI/
+
+와 같은 식으로 기능별로 폴더를 나누어 작성한다.
