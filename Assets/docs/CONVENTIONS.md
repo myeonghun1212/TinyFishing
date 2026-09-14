@@ -49,5 +49,6 @@ Feature
 - style : 코드 스타일 변경
 - design : 사용자 UI 변경
 - refactor : 리팩토링
+- Resources : 리소스추가 제거
 
 위의 분류에 해당하지 않는 경우 사용자 혹은 상위 에이전트에게 확인한다.
